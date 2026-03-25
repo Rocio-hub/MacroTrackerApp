@@ -3,6 +3,7 @@ package com.ro.macrotracker.data.local.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 import com.ro.macrotracker.data.local.entity.Ingredient
 import kotlinx.coroutines.flow.Flow
 
@@ -14,4 +15,7 @@ interface IngredientDao {
 
     @Query("SELECT * FROM ingredients")
     fun getAllIngredients(): Flow<List<Ingredient>>
+
+    @Update
+    suspend fun updateIngredient(ingredient: Ingredient)
 }

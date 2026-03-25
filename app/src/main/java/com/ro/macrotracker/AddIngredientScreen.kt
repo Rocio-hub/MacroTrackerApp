@@ -14,13 +14,14 @@ import com.ro.macrotracker.data.local.entity.Ingredient
 @Composable
 fun AddIngredientScreen(
     modifier: Modifier = Modifier,
+    ingredient: Ingredient? = null,   // 👈 NEW
     onSave: (Ingredient) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var calories by remember { mutableStateOf("") }
-    var protein by remember { mutableStateOf("") }
-    var carbs by remember { mutableStateOf("") }
-    var fat by remember { mutableStateOf("") }
+    var name by remember { mutableStateOf(ingredient?.name ?: "") }
+    var calories by remember { mutableStateOf(ingredient?.caloriesPer100g?.toString() ?: "") }
+    var protein by remember { mutableStateOf(ingredient?.proteinPer100g?.toString() ?: "") }
+    var carbs by remember { mutableStateOf(ingredient?.carbsPer100g?.toString() ?: "") }
+    var fat by remember { mutableStateOf(ingredient?.fatPer100g?.toString() ?: "") }
 
     Column(modifier = modifier.padding(16.dp)) {
 
@@ -61,14 +62,15 @@ fun AddIngredientScreen(
 
         Button(
             onClick = {
-                val ingredient = Ingredient(
+                val newIngredient = Ingredient(
+                    id = ingredient?.id ?: 0,
                     name = name,
                     caloriesPer100g = calories.toDoubleOrNull() ?: 0.0,
                     proteinPer100g = protein.toDoubleOrNull() ?: 0.0,
                     carbsPer100g = carbs.toDoubleOrNull() ?: 0.0,
                     fatPer100g = fat.toDoubleOrNull() ?: 0.0
                 )
-                onSave(ingredient)
+                onSave(newIngredient)
             },
             modifier = Modifier.padding(top = 16.dp)
         ) {

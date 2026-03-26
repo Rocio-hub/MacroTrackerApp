@@ -5,18 +5,11 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Button
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -26,12 +19,12 @@ import com.ro.macrotracker.ui.theme.MacroTrackerTheme
 import kotlinx.coroutines.launch
 
 enum class Screen {
-    INGREDIENT_LIST,
-    ADD_INGREDIENT,
-    RECIPE_LIST,
+    RECIPES,
+    INGREDIENTS,
+    PLANNER,
     ADD_RECIPE,
-    RECIPE_DETAIL,
-    DAILY_PLANNER
+    ADD_INGREDIENT,
+    RECIPE_DETAIL
 }
 
 class MainActivity : ComponentActivity() {
@@ -47,102 +40,88 @@ class MainActivity : ComponentActivity() {
 
         val ingredientDao = db.ingredientDao()
         val recipeDao = db.recipeDao()
+        val recipeIngredientDao = db.recipeIngredientDao()
 
         setContent {
 
-            var currentScreen by remember { mutableStateOf(Screen.INGREDIENT_LIST) }
+            var currentScreen by remember { mutableStateOf(Screen.RECIPES) }
             var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
             var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
 
             val ingredients by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
             val recipes by recipeDao.getAllRecipes().collectAsState(initial = emptyList())
-
-            val scope = rememberCoroutineScope()
-
-            val recipeIngredientDao = db.recipeIngredientDao()
             val allRecipeIngredients by recipeIngredientDao
                 .getAllRecipeIngredients()
                 .collectAsState(initial = emptyList())
 
             val recipeIngredientsMap = allRecipeIngredients.groupBy { it.recipeId }
 
+            val scope = rememberCoroutineScope()
+
             MacroTrackerTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
+
+                    // ✅ FAB (only for add actions)
+                    floatingActionButton = {
+                        when (currentScreen) {
+
+                            Screen.RECIPES -> {
+                                FloatingActionButton(
+                                    onClick = { currentScreen = Screen.ADD_RECIPE }
+                                ) {
+                                    Text("+")
+                                }
+                            }
+
+                            Screen.INGREDIENTS -> {
+                                FloatingActionButton(
+                                    onClick = {
+                                        selectedIngredient = null
+                                        currentScreen = Screen.ADD_INGREDIENT
+                                    }
+                                ) {
+                                    Text("+")
+                                }
+                            }
+
+                            else -> {}
+                        }
+                    },
+
+                    // ✅ Bottom navigation
                     bottomBar = {
-                        Column {
+                        NavigationBar {
 
-                            Row {
+                            NavigationBarItem(
+                                selected = currentScreen == Screen.RECIPES,
+                                onClick = { currentScreen = Screen.RECIPES },
+                                label = { Text("Recipes") },
+                                icon = { Text("🍽") }
+                            )
 
-                                Button(onClick = {
-                                    currentScreen = Screen.INGREDIENT_LIST
-                                }) {
-                                    Text("Ingredients")
-                                }
+                            NavigationBarItem(
+                                selected = currentScreen == Screen.INGREDIENTS,
+                                onClick = { currentScreen = Screen.INGREDIENTS },
+                                label = { Text("Ingredients") },
+                                icon = { Text("🥦") }
+                            )
 
-                                Button(onClick = {
-                                    currentScreen = Screen.RECIPE_LIST
-                                }) {
-                                    Text("Recipes")
-                                }
-
-                                Button(onClick = {
-                                    currentScreen = Screen.DAILY_PLANNER
-                                }) {
-                                    Text("Planner")
-                                }
-                            }
-
-                            Row {
-
-                                Button(onClick = {
-                                    currentScreen = Screen.ADD_INGREDIENT
-                                }) {
-                                    Text("+ Ingredient")
-                                }
-
-                                Button(onClick = {
-                                    currentScreen = Screen.ADD_RECIPE
-                                }) {
-                                    Text("+ Recipe")
-                                }
-                            }
+                            NavigationBarItem(
+                                selected = currentScreen == Screen.PLANNER,
+                                onClick = { currentScreen = Screen.PLANNER },
+                                label = { Text("Planner") },
+                                icon = { Text("📊") }
+                            )
                         }
                     }
+
                 ) { innerPadding ->
 
                     when (currentScreen) {
 
-                        Screen.INGREDIENT_LIST -> {
-                            LazyColumn(modifier = Modifier.padding(innerPadding)) {
-                                items(ingredients) { ingredient ->
-                                    IngredientItem(
-                                        ingredient = ingredient,
-                                        onClick = { selectedIngredient = ingredient }
-                                    )
-                                }
-                            }
-                        }
-
-                        Screen.ADD_INGREDIENT -> {
-                            AddIngredientScreen(
-                                modifier = Modifier.padding(innerPadding),
-                                ingredient = selectedIngredient,
-                                onSave = { ingredient ->
-                                    scope.launch {
-                                        if (ingredient.id == 0)
-                                            ingredientDao.insertIngredient(ingredient)
-                                        else
-                                            ingredientDao.updateIngredient(ingredient)
-
-                                        selectedIngredient = null
-                                        currentScreen = Screen.INGREDIENT_LIST
-                                    }
-                                }
-                            )
-                        }
-
-                        Screen.RECIPE_LIST -> {
+                        // 🍽 RECIPES
+                        Screen.RECIPES -> {
                             LazyColumn(modifier = Modifier.padding(innerPadding)) {
                                 items(recipes) { recipe ->
                                     Text(
@@ -158,30 +137,67 @@ class MainActivity : ComponentActivity() {
                             }
                         }
 
+                        // 🥦 INGREDIENTS
+                        Screen.INGREDIENTS -> {
+                            LazyColumn(modifier = Modifier.padding(innerPadding)) {
+                                items(ingredients) { ingredient ->
+                                    IngredientItem(
+                                        ingredient = ingredient,
+                                        onClick = {
+                                            selectedIngredient = ingredient
+                                            currentScreen = Screen.ADD_INGREDIENT
+                                        }
+                                    )
+                                }
+                            }
+                        }
+
+                        // ➕ ADD RECIPE
                         Screen.ADD_RECIPE -> {
                             AddRecipeScreen(
                                 modifier = Modifier.padding(innerPadding),
                                 onSave = { recipe ->
                                     scope.launch {
                                         recipeDao.insertRecipe(recipe)
-                                        currentScreen = Screen.RECIPE_LIST
+                                        currentScreen = Screen.RECIPES
                                     }
                                 }
                             )
                         }
 
-                        Screen.RECIPE_DETAIL -> {
-                            RecipeDetailScreen(
-                                recipe = selectedRecipe!!,
-                                ingredientDao = ingredientDao,
-                                recipeIngredientDao = db.recipeIngredientDao(),
-                                onBack = {
-                                    currentScreen = Screen.RECIPE_LIST
+                        // ➕ ADD / EDIT INGREDIENT
+                        Screen.ADD_INGREDIENT -> {
+                            AddIngredientScreen(
+                                modifier = Modifier.padding(innerPadding),
+                                ingredient = selectedIngredient,
+                                onSave = { ingredient ->
+                                    scope.launch {
+                                        if (ingredient.id == 0)
+                                            ingredientDao.insertIngredient(ingredient)
+                                        else
+                                            ingredientDao.updateIngredient(ingredient)
+
+                                        selectedIngredient = null
+                                        currentScreen = Screen.INGREDIENTS
+                                    }
                                 }
                             )
                         }
 
-                        Screen.DAILY_PLANNER -> {
+                        // 📄 RECIPE DETAIL
+                        Screen.RECIPE_DETAIL -> {
+                            RecipeDetailScreen(
+                                recipe = selectedRecipe!!,
+                                ingredientDao = ingredientDao,
+                                recipeIngredientDao = recipeIngredientDao,
+                                onBack = {
+                                    currentScreen = Screen.RECIPES
+                                }
+                            )
+                        }
+
+                        // 📊 PLANNER
+                        Screen.PLANNER -> {
                             DailyPlannerScreen(
                                 recipes = recipes,
                                 ingredients = ingredients,

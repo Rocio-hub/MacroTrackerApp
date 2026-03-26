@@ -19,16 +19,14 @@ fun DailyPlannerScreen(
 ) {
 
     var targetCalories by remember { mutableStateOf("") }
-    var selectedRecipes by remember { mutableStateOf(setOf<Recipe>()) }
+    var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
 
-    val totalCalories = selectedRecipes.sumOf { recipe ->
+    val totalCalories = selectedRecipes.entries.sumOf { (recipe, count) ->
         val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-        calculateNutrition(ris, ingredients).calories
+        calculateNutrition(ris, ingredients).calories * count
     }
 
     val target = targetCalories.toDoubleOrNull() ?: 0.0
-    val isOver = totalCalories > target && target > 0
-    val isNear = totalCalories <= target && target > 0
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -40,7 +38,10 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        Text(text = "Current calories: $totalCalories")
+        Text(
+            text = "Calories: ${totalCalories.toInt()} / ${target.toInt()}",
+            style = MaterialTheme.typography.titleMedium
+        )
 
         Text(
             text = when {
@@ -48,6 +49,12 @@ fun DailyPlannerScreen(
                 totalCalories > target -> "🔴 Over calories"
                 totalCalories == target -> "✅ Perfect"
                 else -> "🟢 Under target"
+            },
+            color = when {
+                target == 0.0 -> MaterialTheme.colorScheme.onSurfaceVariant
+                totalCalories > target -> MaterialTheme.colorScheme.error
+                totalCalories == target -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.primary
             }
         )
 
@@ -74,39 +81,77 @@ fun DailyPlannerScreen(
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
                 val calories = calculateNutrition(ris, ingredients).calories
 
-                val isSelected = selectedRecipes.contains(recipe)
-
-                // simulate adding this recipe
-                val newTotal = if (isSelected) {
-                    totalCalories
-                } else {
-                    totalCalories + calories
-                }
-
-                val willBeOver = newTotal > target && target > 0
+                val count = selectedRecipes[recipe] ?: 0
+                val isSelected = count > 0
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = when {
-                            isSelected && totalCalories > target -> MaterialTheme.colorScheme.errorContainer
-                            isSelected -> MaterialTheme.colorScheme.primaryContainer
-                            !isSelected && willBeOver -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-                            else -> MaterialTheme.colorScheme.surface
-                        }
+                        containerColor = if (isSelected)
+                            MaterialTheme.colorScheme.primaryContainer
+                        else
+                            MaterialTheme.colorScheme.surface
                     ),
                     onClick = {
-                        selectedRecipes =
-                            if (isSelected) selectedRecipes - recipe
-                            else selectedRecipes + recipe
+                        if (!isSelected) {
+                            selectedRecipes = selectedRecipes + (recipe to 1)
+                        }
                     }
                 ) {
-                    Text(
-                        text = "${recipe.name} - $calories kcal",
-                        modifier = Modifier.padding(16.dp)
-                    )
+                    Column(modifier = Modifier.padding(16.dp)) {
+
+                        // 🧾 Recipe info
+                        Column {
+
+                            Text(
+                                text = recipe.name,
+                                style = MaterialTheme.typography.titleMedium
+                            )
+
+                            Text(
+                                text = "$calories kcal",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        // 👇 Controls only if selected
+                        if (isSelected) {
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+
+                                Button(
+                                    onClick = {
+                                        selectedRecipes = selectedRecipes + (recipe to (count + 1))
+                                    },
+                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                                ) {
+                                    Text("+")
+                                }
+
+                                Text("x$count")
+
+                                Button(
+                                    onClick = {
+                                        val newCount = count - 1
+                                        selectedRecipes =
+                                            if (newCount <= 0)
+                                                selectedRecipes - recipe
+                                            else
+                                                selectedRecipes + (recipe to newCount)
+                                    }
+                                ) {
+                                    Text("-")
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

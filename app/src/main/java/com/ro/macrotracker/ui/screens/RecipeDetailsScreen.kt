@@ -27,6 +27,7 @@ fun calculateNutrition(
     var carbs = 0.0
     var fat = 0.0
 
+
     recipeIngredients.forEach { ri ->
         val ingredient = ingredients.find { it.id == ri.ingredientId } ?: return@forEach
 
@@ -57,6 +58,9 @@ fun RecipeDetailScreen(
     val nutrition = calculateNutrition(recipeIngredients, ingredients)
 
     var showAdd by remember { mutableStateOf(false) }
+    var editingItem by remember { mutableStateOf<RecipeIngredient?>(null) }
+    var newGrams by remember { mutableStateOf("") }
+
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.padding(16.dp)) {
@@ -66,10 +70,10 @@ fun RecipeDetailScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // ✅ Nutrition summary
-        Text(text = "Calories: ${nutrition.calories}")
-        Text(text = "Protein: ${nutrition.protein}")
-        Text(text = "Carbs: ${nutrition.carbs}")
-        Text(text = "Fat: ${nutrition.fat}")
+        Text(text = "Calories: ${nutrition.calories.format()}")
+        Text(text = "Protein: ${nutrition.protein.format()}")
+        Text(text = "Carbs: ${nutrition.carbs.format()}")
+        Text(text = "Fat: ${nutrition.fat.format()}")
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -81,11 +85,74 @@ fun RecipeDetailScreen(
 
         LazyColumn {
             items(recipeIngredients) { ri ->
+
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 
-                Text(
-                    text = "${ingredient?.name ?: "Unknown"} - ${ri.quantityInGrams.format()}${ingredient?.unit ?: ""}"
-                )
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
+
+                    Text("${ingredient?.name ?: "Unknown"}")
+
+                    Text("${ri.quantityInGrams.format()}${ingredient?.unit ?: ""}")
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                        Button(onClick = {
+                            editingItem = ri
+                            newGrams = ri.quantityInGrams.toString()
+                        }) {
+                            Text("Edit")
+                        }
+
+                        Button(onClick = {
+                            scope.launch {
+                                recipeIngredientDao.deleteRecipeIngredient(ri.id)
+                            }
+                        }) {
+                            Text("Delete")
+                        }
+                    }
+
+                    // ✏️ EDIT MODE
+                    if (editingItem?.id == ri.id) {
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        OutlinedTextField(
+                            value = newGrams,
+                            onValueChange = { newGrams = it },
+                            label = { Text("Grams / ml") }
+                        )
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                            Button(onClick = {
+                                val updated = newGrams.toDoubleOrNull()
+                                    ?: ri.quantityInGrams
+
+                                scope.launch {
+                                    recipeIngredientDao.updateRecipeIngredient(
+                                        ri.copy(quantityInGrams = updated)
+                                    )
+                                    editingItem = null
+                                }
+                            }) {
+                                Text("Save")
+                            }
+
+                            Button(onClick = {
+                                editingItem = null
+                            }) {
+                                Text("Cancel")
+                            }
+                        }
+                    }
+                }
             }
         }
 

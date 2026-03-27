@@ -11,5 +11,6 @@ data class Ingredient(
     val caloriesPer100g: Double,
     val proteinPer100g: Double,
     val carbsPer100g: Double,
-    val fatPer100g: Double
+    val fatPer100g: Double,
+    val unit: String
 )

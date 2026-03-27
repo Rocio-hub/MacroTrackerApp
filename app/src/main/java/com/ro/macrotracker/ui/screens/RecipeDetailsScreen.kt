@@ -1,4 +1,4 @@
-package com.ro.macrotracker.ui.theme
+package com.ro.macrotracker.ui.screens
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -7,7 +7,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.AddIngredientToRecipeDialog
+import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
 import com.ro.macrotracker.Nutrition
 import com.ro.macrotracker.data.local.dao.IngredientDao
 import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
@@ -83,7 +83,7 @@ fun RecipeDetailScreen(
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 
                 Text(
-                    text = "${ingredient?.name ?: "Unknown"} - ${ri.quantityInGrams}g"
+                    text = "${ingredient?.name ?: "Unknown"} - ${ri.quantityInGrams}${ingredient?.unit ?: ""}"
                 )
             }
         }

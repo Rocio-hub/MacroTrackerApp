@@ -127,17 +127,7 @@ fun DailyPlannerScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
 
-                                Button(
-                                    onClick = {
-                                        selectedRecipes = selectedRecipes + (recipe to (count + 1))
-                                    },
-                                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
-                                ) {
-                                    Text("+")
-                                }
-
-                                Text("x$count")
-
+                                // ➖ DECREASE
                                 Button(
                                     onClick = {
                                         val newCount = count - 1
@@ -149,6 +139,17 @@ fun DailyPlannerScreen(
                                     }
                                 ) {
                                     Text("-")
+                                }
+
+                                Text("x$count")
+
+                                // ➕ INCREASE
+                                Button(
+                                    onClick = {
+                                        selectedRecipes = selectedRecipes + (recipe to (count + 1))
+                                    }
+                                ) {
+                                    Text("+")
                                 }
                             }
                         }

@@ -21,7 +21,8 @@ import com.ro.macrotracker.data.local.entity.Ingredient
 fun AddIngredientScreen(
     modifier: Modifier = Modifier,
     ingredient: Ingredient? = null,
-    onSave: (Ingredient) -> Unit
+    onSave: (Ingredient) -> Unit,
+    onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
     var calories by remember { mutableStateOf(ingredient?.caloriesPer100g?.toString() ?: "") }
@@ -100,22 +101,31 @@ fun AddIngredientScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
-        Button(
-            onClick = {
-                val newIngredient = Ingredient(
-                    id = ingredient?.id ?: 0,
-                    name = name,
-                    caloriesPer100g = calories.toDoubleOrNull() ?: 0.0,
-                    proteinPer100g = protein.toDoubleOrNull() ?: 0.0,
-                    carbsPer100g = carbs.toDoubleOrNull() ?: 0.0,
-                    fatPer100g = fat.toDoubleOrNull() ?: 0.0,
-                    unit = unit
-                )
-                onSave(newIngredient)
-            },
-            modifier = Modifier.padding(top = 16.dp)
+        Row(
+            modifier = Modifier.padding(top = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text("Save")
+
+            Button(onClick = onCancel) {
+                Text("Cancel")
+            }
+
+            Button(
+                onClick = {
+                    val newIngredient = Ingredient(
+                        id = ingredient?.id ?: 0,
+                        name = name,
+                        caloriesPer100g = calories.toDoubleOrNull() ?: 0.0,
+                        proteinPer100g = protein.toDoubleOrNull() ?: 0.0,
+                        carbsPer100g = carbs.toDoubleOrNull() ?: 0.0,
+                        fatPer100g = fat.toDoubleOrNull() ?: 0.0,
+                        unit = unit
+                    )
+                    onSave(newIngredient)
+                }
+            ) {
+                Text("Save")
+            }
         }
     }
 }

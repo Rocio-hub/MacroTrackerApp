@@ -211,6 +211,10 @@ class MainActivity : ComponentActivity() {
                                         selectedIngredient = null
                                         currentScreen = Screen.INGREDIENTS
                                     }
+                                },
+                                onCancel = {
+                                    selectedIngredient = null
+                                    currentScreen = Screen.INGREDIENTS
                                 }
                             )
                         }

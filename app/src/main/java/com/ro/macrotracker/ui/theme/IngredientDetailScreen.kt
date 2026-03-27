@@ -1,4 +1,4 @@
-package com.ro.macrotracker
+package com.ro.macrotracker.ui.theme
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding

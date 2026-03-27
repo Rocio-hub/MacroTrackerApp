@@ -15,7 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
+import com.ro.macrotracker.ui.theme.AddIngredientScreen
+import com.ro.macrotracker.ui.theme.AddRecipeScreen
+import com.ro.macrotracker.ui.theme.DailyPlannerScreen
 import com.ro.macrotracker.ui.theme.MacroTrackerTheme
+import com.ro.macrotracker.ui.theme.RecipeDetailScreen
 import kotlinx.coroutines.launch
 
 enum class Screen {
@@ -146,6 +150,11 @@ class MainActivity : ComponentActivity() {
                                         onClick = {
                                             selectedIngredient = ingredient
                                             currentScreen = Screen.ADD_INGREDIENT
+                                        },
+                                        onDelete = {
+                                            scope.launch {
+                                                ingredientDao.deleteIngredient(ingredient)
+                                            }
                                         }
                                     )
                                 }

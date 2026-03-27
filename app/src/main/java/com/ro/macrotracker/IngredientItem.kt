@@ -1,10 +1,13 @@
 package com.ro.macrotracker
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Card
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -13,24 +16,37 @@ import com.ro.macrotracker.data.local.entity.Ingredient
 @Composable
 fun IngredientItem(
     ingredient: Ingredient,
-    onClick: () -> Unit) {
+    onClick: () -> Unit,
+    onDelete: () -> Unit   // 👈 NEW
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(8.dp),
         onClick = onClick
     ) {
-        Column(modifier = Modifier.padding(12.dp)) {
+        Row(
+            modifier = Modifier.padding(12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
 
-            Text(text = ingredient.name)
+            Column(modifier = Modifier.weight(1f)) {
 
-            Text(text = "Calories: ${ingredient.caloriesPer100g} kcal")
+                Text(text = ingredient.name)
 
-            Text(
-                text = "Protein: ${ingredient.proteinPer100g}g | " +
-                        "Carbs: ${ingredient.carbsPer100g}g | " +
-                        "Fat: ${ingredient.fatPer100g}g"
-            )
+                Text(text = "Calories: ${ingredient.caloriesPer100g} kcal")
+
+                Text(
+                    text = "Protein: ${ingredient.proteinPer100g}g | " +
+                            "Carbs: ${ingredient.carbsPer100g}g | " +
+                            "Fat: ${ingredient.fatPer100g}g"
+                )
+            }
+
+            // 🗑 DELETE BUTTON
+            TextButton(onClick = onDelete) {
+                Text("Delete")
+            }
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.ro.macrotracker.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
@@ -18,4 +19,7 @@ interface IngredientDao {
 
     @Update
     suspend fun updateIngredient(ingredient: Ingredient)
+
+    @Delete
+    suspend fun deleteIngredient(ingredient: Ingredient)
 }

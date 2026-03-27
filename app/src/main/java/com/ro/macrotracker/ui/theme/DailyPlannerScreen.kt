@@ -1,4 +1,4 @@
-package com.ro.macrotracker
+package com.ro.macrotracker.ui.theme
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn

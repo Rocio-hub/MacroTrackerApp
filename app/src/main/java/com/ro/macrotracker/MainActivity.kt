@@ -154,7 +154,6 @@ class MainActivity : ComponentActivity() {
                                         onDelete = {
                                             scope.launch {
                                                 ingredientDao.deleteIngredient(ingredient)
-                                                
                                             }
                                         }
                                     )

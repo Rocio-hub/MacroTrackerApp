@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.data.local.entity.Ingredient
+import com.ro.macrotracker.utils.format
 
 @Composable
 fun IngredientItem(
@@ -34,7 +35,7 @@ fun IngredientItem(
 
                 Text(text = ingredient.name)
 
-                Text(text = "Calories: ${ingredient.caloriesPer100g} kcal")
+                Text(text = "Calories: ${ingredient.caloriesPer100g.format()} kcal")
 
                 Text(
                     text = "Protein: ${ingredient.proteinPer100g}g | " +

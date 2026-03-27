@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
+import com.ro.macrotracker.utils.format
 
 @Composable
 fun DailyPlannerScreen(
@@ -39,7 +40,7 @@ fun DailyPlannerScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Calories: ${totalCalories.toInt()} / ${target.toInt()}",
+            text = "Calories: ${totalCalories.format()} / ${target.format()}",
             style = MaterialTheme.typography.titleMedium
         )
 
@@ -111,7 +112,7 @@ fun DailyPlannerScreen(
                             )
 
                             Text(
-                                text = "$calories kcal",
+                                text = "${calories.format()} kcal",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

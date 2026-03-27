@@ -14,6 +14,7 @@ import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
 import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
+import com.ro.macrotracker.utils.format
 import kotlinx.coroutines.launch
 
 fun calculateNutrition(
@@ -83,7 +84,7 @@ fun RecipeDetailScreen(
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 
                 Text(
-                    text = "${ingredient?.name ?: "Unknown"} - ${ri.quantityInGrams}${ingredient?.unit ?: ""}"
+                    text = "${ingredient?.name ?: "Unknown"} - ${ri.quantityInGrams.format()}${ingredient?.unit ?: ""}"
                 )
             }
         }

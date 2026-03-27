@@ -1,6 +1,7 @@
 package com.ro.macrotracker.data.local.dao
 
 import androidx.room.Dao
+import androidx.room.Delete
 import androidx.room.Insert
 import androidx.room.Query
 import com.ro.macrotracker.data.local.entity.Recipe
@@ -14,5 +15,8 @@ interface RecipeDao {
 
     @Query("SELECT * FROM recipes")
     fun getAllRecipes(): Flow<List<Recipe>>
+
+    @Delete
+    suspend fun deleteRecipe(recipe: Recipe)
 
 }

@@ -6,6 +6,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
@@ -19,7 +20,22 @@ fun DailyPlannerScreen(
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>
 ) {
 
+    val context = LocalContext.current
+
     var targetCalories by remember { mutableStateOf("") }
+
+    // ✅ Load saved value
+    LaunchedEffect(Unit) {
+        val prefs = context.getSharedPreferences("planner", 0)
+        targetCalories = prefs.getString("targetCalories", "") ?: ""
+    }
+
+    // ✅ Save when changed
+    LaunchedEffect(targetCalories) {
+        val prefs = context.getSharedPreferences("planner", 0)
+        prefs.edit().putString("targetCalories", targetCalories).apply()
+    }
+
     var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
 
     val totalCalories = selectedRecipes.entries.sumOf { (recipe, count) ->
@@ -31,6 +47,7 @@ fun DailyPlannerScreen(
 
     Column(modifier = Modifier.padding(16.dp)) {
 
+        // 🎯 Target input
         OutlinedTextField(
             value = targetCalories,
             onValueChange = { targetCalories = it },
@@ -39,11 +56,13 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 📊 Current calories
         Text(
             text = "Calories: ${totalCalories.format()} / ${target.format()}",
             style = MaterialTheme.typography.titleMedium
         )
 
+        // 🔔 Status
         Text(
             text = when {
                 target == 0.0 -> "Enter a target"
@@ -61,6 +80,7 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
+        // 📈 Progress bar
         LinearProgressIndicator(
             progress = {
                 if (target > 0)
@@ -76,6 +96,7 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // 📋 Recipes list
         LazyColumn {
             items(recipes) { recipe ->
 
@@ -104,19 +125,16 @@ fun DailyPlannerScreen(
                     Column(modifier = Modifier.padding(16.dp)) {
 
                         // 🧾 Recipe info
-                        Column {
+                        Text(
+                            text = recipe.name,
+                            style = MaterialTheme.typography.titleMedium
+                        )
 
-                            Text(
-                                text = recipe.name,
-                                style = MaterialTheme.typography.titleMedium
-                            )
-
-                            Text(
-                                text = "${calories.format()} kcal",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(
+                            text = "${calories.format()} kcal",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
 
                         // 👇 Controls only if selected
                         if (isSelected) {
@@ -146,7 +164,8 @@ fun DailyPlannerScreen(
                                 // ➕ INCREASE
                                 Button(
                                     onClick = {
-                                        selectedRecipes = selectedRecipes + (recipe to (count + 1))
+                                        selectedRecipes =
+                                            selectedRecipes + (recipe to (count + 1))
                                     }
                                 ) {
                                     Text("+")

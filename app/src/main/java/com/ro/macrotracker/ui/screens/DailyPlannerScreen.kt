@@ -21,8 +21,8 @@ fun DailyPlannerScreen(
 ) {
 
     val context = LocalContext.current
-
     var targetCalories by remember { mutableStateOf("") }
+    val target = targetCalories.toDoubleOrNull() ?: 0.0
 
     // ✅ Load saved value
     LaunchedEffect(Unit) {
@@ -38,12 +38,22 @@ fun DailyPlannerScreen(
 
     var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
 
-    val totalCalories = selectedRecipes.entries.sumOf { (recipe, count) ->
+    val totalNutrition = selectedRecipes.entries.fold(
+        com.ro.macrotracker.Nutrition(0.0, 0.0, 0.0, 0.0)
+    ) { acc, (recipe, count) ->
+
         val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-        calculateNutrition(ris, ingredients).calories * count
+        val nutrition = calculateNutrition(ris, ingredients)
+
+        com.ro.macrotracker.Nutrition(
+            calories = acc.calories + nutrition.calories * count,
+            protein = acc.protein + nutrition.protein * count,
+            carbs = acc.carbs + nutrition.carbs * count,
+            fat = acc.fat + nutrition.fat * count
+        )
     }
 
-    val target = targetCalories.toDoubleOrNull() ?: 0.0
+    val totalCalories = totalNutrition.calories
 
     Column(modifier = Modifier.padding(16.dp)) {
 
@@ -56,11 +66,16 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 📊 Current calories
-        Text(
-            text = "Calories: ${totalCalories.format()} / ${target.format()}",
-            style = MaterialTheme.typography.titleMedium
-        )
+        // 📊 Current macros
+        Column {
+            Text(
+                "Calories: ${totalCalories.format()} / ${target.format()}",
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text("Protein: ${totalNutrition.protein.format()} g")
+            Text("Carbs: ${totalNutrition.carbs.format()} g")
+            Text("Fat: ${totalNutrition.fat.format()} g")
+        }
 
         // 🔔 Status
         Text(

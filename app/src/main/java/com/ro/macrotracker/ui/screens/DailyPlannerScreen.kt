@@ -136,7 +136,7 @@ fun DailyPlannerScreen(
                     ),
                     onClick = {
                         if (!isSelected) {
-                            onRecipeClick(recipe)
+                            selectedRecipes = selectedRecipes + (recipe to 1)
                         }
                     }
                 ) {
@@ -147,6 +147,14 @@ fun DailyPlannerScreen(
                             text = recipe.name,
                             style = MaterialTheme.typography.titleMedium
                         )
+
+                        TextButton(
+                            onClick = {
+                                onRecipeClick(recipe)
+                            }
+                        ) {
+                            Text("Details")
+                        }
 
                         Text(
                             text = "${nutrition.calories.format()} kcal | " +

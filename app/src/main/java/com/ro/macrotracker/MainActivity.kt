@@ -236,7 +236,11 @@ class MainActivity : ComponentActivity() {
                             DailyPlannerScreen(
                                 recipes = recipes,
                                 ingredients = ingredients,
-                                recipeIngredientsMap = recipeIngredientsMap
+                                recipeIngredientsMap = recipeIngredientsMap,
+                                onRecipeClick = { recipe ->
+                                    selectedRecipe = recipe
+                                    currentScreen = Screen.RECIPE_DETAIL
+                                }
                             )
                         }
                     }

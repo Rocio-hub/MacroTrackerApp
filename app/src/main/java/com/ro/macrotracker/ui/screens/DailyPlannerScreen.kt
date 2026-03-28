@@ -17,8 +17,9 @@ import com.ro.macrotracker.utils.format
 fun DailyPlannerScreen(
     recipes: List<Recipe>,
     ingredients: List<Ingredient>,
-    recipeIngredientsMap: Map<Int, List<RecipeIngredient>>
-) {
+    recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
+    onRecipeClick: (Recipe) -> Unit   // 👈 NEW
+){
 
     val context = LocalContext.current
     var targetCalories by remember { mutableStateOf("") }
@@ -133,7 +134,7 @@ fun DailyPlannerScreen(
                     ),
                     onClick = {
                         if (!isSelected) {
-                            selectedRecipes = selectedRecipes + (recipe to 1)
+                            onRecipeClick(recipe)
                         }
                     }
                 ) {

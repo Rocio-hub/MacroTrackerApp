@@ -117,7 +117,7 @@ fun DailyPlannerScreen(
             items(recipes) { recipe ->
 
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-                val calories = calculateNutrition(ris, ingredients).calories
+                val nutrition = calculateNutrition(ris, ingredients)
 
                 val count = selectedRecipes[recipe] ?: 0
                 val isSelected = count > 0
@@ -147,7 +147,10 @@ fun DailyPlannerScreen(
                         )
 
                         Text(
-                            text = "${calories.format()} kcal",
+                            text = "${nutrition.calories.format()} kcal | " +
+                                    "${nutrition.protein.format()}P | " +
+                                    "${nutrition.carbs.format()}C | " +
+                                    "${nutrition.fat.format()}F",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

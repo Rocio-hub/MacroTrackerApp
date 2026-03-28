@@ -29,6 +29,7 @@ fun AddIngredientScreen(
     var protein by remember { mutableStateOf(ingredient?.proteinPer100g?.toString() ?: "") }
     var carbs by remember { mutableStateOf(ingredient?.carbsPer100g?.toString() ?: "") }
     var fat by remember { mutableStateOf(ingredient?.fatPer100g?.toString() ?: "") }
+    var fiber by remember { mutableStateOf(ingredient?.fiberPer100g?.toString() ?: "") }
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
 
     Column(modifier = modifier.padding(16.dp)) {
@@ -101,6 +102,13 @@ fun AddIngredientScreen(
             modifier = Modifier.fillMaxWidth()
         )
 
+        OutlinedTextField(
+            value = fiber,
+            onValueChange = { fiber = it },
+            label = { Text("Fiber per 100g/ml") },
+            modifier = Modifier.fillMaxWidth()
+        )
+
         Row(
             modifier = Modifier.padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,6 +127,7 @@ fun AddIngredientScreen(
                         proteinPer100g = protein.toDoubleOrNull() ?: 0.0,
                         carbsPer100g = carbs.toDoubleOrNull() ?: 0.0,
                         fatPer100g = fat.toDoubleOrNull() ?: 0.0,
+                        fiberPer100g = fiber.toDoubleOrNull() ?: 0.0,
                         unit = unit
                     )
                     onSave(newIngredient)

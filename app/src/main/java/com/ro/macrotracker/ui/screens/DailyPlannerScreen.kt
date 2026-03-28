@@ -40,7 +40,7 @@ fun DailyPlannerScreen(
     var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
 
     val totalNutrition = selectedRecipes.entries.fold(
-        com.ro.macrotracker.Nutrition(0.0, 0.0, 0.0, 0.0)
+        com.ro.macrotracker.Nutrition(0.0, 0.0, 0.0, 0.0, 0.0)
     ) { acc, (recipe, count) ->
 
         val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
@@ -50,7 +50,8 @@ fun DailyPlannerScreen(
             calories = acc.calories + nutrition.calories * count,
             protein = acc.protein + nutrition.protein * count,
             carbs = acc.carbs + nutrition.carbs * count,
-            fat = acc.fat + nutrition.fat * count
+            fat = acc.fat + nutrition.fat * count,
+            fiber = acc.fiber + nutrition.fiber * count
         )
     }
 
@@ -76,6 +77,7 @@ fun DailyPlannerScreen(
             Text("Protein: ${totalNutrition.protein.format()} g")
             Text("Carbs: ${totalNutrition.carbs.format()} g")
             Text("Fat: ${totalNutrition.fat.format()} g")
+            Text("Fiber: ${totalNutrition.fiber.format()} g")
         }
 
         // 🔔 Status
@@ -148,9 +150,10 @@ fun DailyPlannerScreen(
 
                         Text(
                             text = "${nutrition.calories.format()} kcal | " +
-                                    "${nutrition.protein.format()}P | " +
+                                    "${nutrition.fat.format()}F | " +
                                     "${nutrition.carbs.format()}C | " +
-                                    "${nutrition.fat.format()}F",
+                                    "${nutrition.fiber.format()}Fi | " +
+                                    "${nutrition.protein.format()}P",
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )

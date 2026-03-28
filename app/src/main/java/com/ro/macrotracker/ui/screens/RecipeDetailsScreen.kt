@@ -26,7 +26,7 @@ fun calculateNutrition(
     var protein = 0.0
     var carbs = 0.0
     var fat = 0.0
-
+    var fiber = 0.0
 
     recipeIngredients.forEach { ri ->
         val ingredient = ingredients.find { it.id == ri.ingredientId } ?: return@forEach
@@ -37,9 +37,10 @@ fun calculateNutrition(
         protein += ingredient.proteinPer100g * factor
         carbs += ingredient.carbsPer100g * factor
         fat += ingredient.fatPer100g * factor
+        fiber += ingredient.fiberPer100g * factor
     }
 
-    return Nutrition(calories, protein, carbs, fat)
+    return Nutrition(calories, protein, carbs, fat, fiber)
 }
 
 @Composable

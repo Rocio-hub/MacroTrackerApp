@@ -1,5 +1,6 @@
 package com.ro.macrotracker.utils
+import kotlin.math.roundToInt
 
     fun Double.format(): String {
-        return String.format("%.3f", this)
+        return this.roundToInt().toString()
     }

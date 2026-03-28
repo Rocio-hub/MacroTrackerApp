@@ -5,6 +5,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -69,15 +70,24 @@ fun DailyPlannerScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         // 📊 Current macros
-        Column {
+        Column (modifier = Modifier.padding(bottom = 12.dp)) {
+
             Text(
-                "Calories: ${totalCalories.format()} / ${target.format()}",
-                style = MaterialTheme.typography.titleMedium
+                "Daily target",
+                style = MaterialTheme.typography.labelMedium
             )
-            Text("Protein: ${totalNutrition.protein.format()} g")
-            Text("Carbs: ${totalNutrition.carbs.format()} g")
+
+            Text(
+                "${totalCalories.format()} / ${target.format()} kcal",
+                style = MaterialTheme.typography.headlineSmall
+            )
+
+            Spacer(modifier = Modifier.height(4.dp))
+
             Text("Fat: ${totalNutrition.fat.format()} g")
+            Text("Carbs: ${totalNutrition.carbs.format()} g")
             Text("Fiber: ${totalNutrition.fiber.format()} g")
+            Text("Protein: ${totalNutrition.protein.format()} g")
         }
 
         // 🔔 Status
@@ -125,9 +135,10 @@ fun DailyPlannerScreen(
                 val isSelected = count > 0
 
                 Card(
+                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(4.dp),
+                        .padding(vertical = 4.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = if (isSelected)
                             MaterialTheme.colorScheme.primaryContainer
@@ -172,32 +183,29 @@ fun DailyPlannerScreen(
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
 
-                                // ➖ DECREASE
-                                Button(
-                                    onClick = {
-                                        val newCount = count - 1
-                                        selectedRecipes =
-                                            if (newCount <= 0)
-                                                selectedRecipes - recipe
-                                            else
-                                                selectedRecipes + (recipe to newCount)
-                                    }
-                                ) {
+                                TextButton(onClick = {
+                                    val newCount = count - 1
+                                    selectedRecipes =
+                                        if (newCount <= 0)
+                                            selectedRecipes - recipe
+                                        else
+                                            selectedRecipes + (recipe to newCount)
+                                }) {
                                     Text("-")
                                 }
 
-                                Text("x$count")
+                                Text(
+                                    "x$count",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
 
-                                // ➕ INCREASE
-                                Button(
-                                    onClick = {
-                                        selectedRecipes =
-                                            selectedRecipes + (recipe to (count + 1))
-                                    }
-                                ) {
+                                TextButton(onClick = {
+                                    selectedRecipes = selectedRecipes + (recipe to (count + 1))
+                                }) {
                                     Text("+")
                                 }
                             }

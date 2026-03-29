@@ -13,6 +13,9 @@ import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
 import com.ro.macrotracker.utils.format
+import com.ro.macrotracker.domain.Nutrition
+import com.ro.macrotracker.data.mappers.toDomain
+import com.ro.macrotracker.domain.calculateRecipeNutrition
 
 @Composable
 fun DailyPlannerScreen(
@@ -41,13 +44,18 @@ fun DailyPlannerScreen(
     var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
 
     val totalNutrition = selectedRecipes.entries.fold(
-        com.ro.macrotracker.Nutrition(0.0, 0.0, 0.0, 0.0, 0.0)
+        Nutrition()
     ) { acc, (recipe, count) ->
 
         val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-        val nutrition = calculateNutrition(ris, ingredients)
 
-        com.ro.macrotracker.Nutrition(
+
+        val nutrition = calculateRecipeNutrition(
+            ris.map { it.toDomain() },
+            ingredients.map {it.toDomain() }
+        )
+
+        acc.copy(
             calories = acc.calories + nutrition.calories * count,
             protein = acc.protein + nutrition.protein * count,
             carbs = acc.carbs + nutrition.carbs * count,
@@ -129,8 +137,10 @@ fun DailyPlannerScreen(
             items(recipes) { recipe ->
 
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-                val nutrition = calculateNutrition(ris, ingredients)
-
+                val nutrition = calculateRecipeNutrition(
+                    ris.map { it.toDomain() },
+                    ingredients.map { it.toDomain() }
+                )
                 val count = selectedRecipes[recipe] ?: 0
                 val isSelected = count > 0
 

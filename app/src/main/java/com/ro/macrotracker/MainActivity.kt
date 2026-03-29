@@ -15,8 +15,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.data.local.entity.Ingredient
-import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.ui.components.IngredientItem
 import com.ro.macrotracker.ui.screens.AddIngredientScreen
 import com.ro.macrotracker.ui.screens.AddRecipeScreen
@@ -25,6 +23,12 @@ import com.ro.macrotracker.ui.theme.MacroTrackerTheme
 import com.ro.macrotracker.ui.screens.RecipeDetailScreen
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ExperimentalMaterial3Api
+import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.data.mappers.toDomain
+import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.data.mappers.toIngredientEntity
+import com.ro.macrotracker.data.mappers.toRecipeEntity
+import com.ro.macrotracker.data.local.entity.Ingredient as IngredientEntity
 
 enum class Screen {
     RECIPES,
@@ -57,14 +61,19 @@ class MainActivity : ComponentActivity() {
             var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
             var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
 
-            val ingredients by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
+            val ingredients: List<IngredientEntity> by ingredientDao
+                .getAllIngredients()
+                .collectAsState(initial = emptyList())
+
+            val domainIngredients = ingredients.map { it.toDomain() }
+
             val recipes by recipeDao.getAllRecipes().collectAsState(initial = emptyList())
             val allRecipeIngredients by recipeIngredientDao
                 .getAllRecipeIngredients()
                 .collectAsState(initial = emptyList())
 
             val recipeIngredientsMap = allRecipeIngredients.groupBy { it.recipeId }
-
+            val domainRecipes = recipes.map { it.toDomain() }
             val scope = rememberCoroutineScope()
 
             MacroTrackerTheme {
@@ -136,7 +145,7 @@ class MainActivity : ComponentActivity() {
                             // 🍽 RECIPES LIST
                             Screen.RECIPES -> {
                                 LazyColumn {
-                                    items(recipes) { recipe ->
+                                    items(domainRecipes) { recipe ->
                                         Text(
                                             text = recipe.name,
                                             modifier = Modifier
@@ -155,16 +164,16 @@ class MainActivity : ComponentActivity() {
                             // 🥦 INGREDIENTS LIST
                             Screen.INGREDIENTS -> {
                                 LazyColumn {
-                                    items(ingredients) { ingredient ->
+                                    items(domainIngredients) { ingredient ->
                                         IngredientItem(
-                                            ingredient = ingredient,
+                                            ingredient = ingredient.toIngredientEntity(),
                                             onClick = {
                                                 selectedIngredient = ingredient
                                                 currentScreen = Screen.ADD_INGREDIENT
                                             },
                                             onDelete = {
                                                 scope.launch {
-                                                    ingredientDao.deleteIngredient(ingredient)
+                                                    ingredientDao.deleteIngredient(ingredient.toIngredientEntity())
                                                 }
                                             }
                                         )
@@ -187,7 +196,7 @@ class MainActivity : ComponentActivity() {
                             // ➕ ADD / EDIT INGREDIENT
                             Screen.ADD_INGREDIENT -> {
                                 AddIngredientScreen(
-                                    ingredient = selectedIngredient,
+                                    ingredient = selectedIngredient?.toIngredientEntity(),
                                     onSave = { ingredient ->
                                         scope.launch {
                                             if (ingredient.id == 0)
@@ -209,7 +218,7 @@ class MainActivity : ComponentActivity() {
                             // 📄 RECIPE DETAIL
                             Screen.RECIPE_DETAIL -> {
                                 RecipeDetailScreen(
-                                    recipe = selectedRecipe!!,
+                                    recipe = selectedRecipe!!.toRecipeEntity(),
                                     ingredientDao = ingredientDao,
                                     recipeIngredientDao = recipeIngredientDao,
                                     onBack = { currentScreen = Screen.RECIPES }
@@ -223,7 +232,7 @@ class MainActivity : ComponentActivity() {
                                     ingredients = ingredients,
                                     recipeIngredientsMap = recipeIngredientsMap,
                                     onRecipeClick = { recipe ->
-                                        selectedRecipe = recipe
+                                        selectedRecipe = recipe.toDomain()
                                         currentScreen = Screen.RECIPE_DETAIL
                                     }
                                 )

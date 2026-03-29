@@ -8,40 +8,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
-import com.ro.macrotracker.Nutrition
 import com.ro.macrotracker.data.local.dao.IngredientDao
 import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
-import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
 import com.ro.macrotracker.utils.format
 import kotlinx.coroutines.launch
-
-fun calculateNutrition(
-    recipeIngredients: List<RecipeIngredient>,
-    ingredients: List<Ingredient>
-): Nutrition {
-
-    var calories = 0.0
-    var protein = 0.0
-    var carbs = 0.0
-    var fat = 0.0
-    var fiber = 0.0
-
-    recipeIngredients.forEach { ri ->
-        val ingredient = ingredients.find { it.id == ri.ingredientId } ?: return@forEach
-
-        val factor = ri.quantityInGrams / 100.0
-
-        calories += ingredient.caloriesPer100g * factor
-        protein += ingredient.proteinPer100g * factor
-        carbs += ingredient.carbsPer100g * factor
-        fat += ingredient.fatPer100g * factor
-        fiber += ingredient.fiberPer100g * factor
-    }
-
-    return Nutrition(calories, protein, carbs, fat, fiber)
-}
+import com.ro.macrotracker.domain.calculateNutrition
+import com.ro.macrotracker.data.mappers.toDomain
 
 @Composable
 fun RecipeDetailScreen(
@@ -56,7 +30,15 @@ fun RecipeDetailScreen(
         .getIngredientsForRecipe(recipe.id)
         .collectAsState(initial = emptyList())
 
-    val nutrition = calculateNutrition(recipeIngredients, ingredients)
+    val nutritionInput = recipeIngredients.mapNotNull { ri ->
+        val ingredient = ingredients.find { it.id == ri.ingredientId }
+
+        ingredient?.toDomain()?.let {
+            it to ri.quantityInGrams
+        }
+    }
+
+    val nutrition = calculateNutrition(nutritionInput)
 
     var showAdd by remember { mutableStateOf(false) }
     var editingItem by remember { mutableStateOf<RecipeIngredient?>(null) }
@@ -75,6 +57,7 @@ fun RecipeDetailScreen(
         Text(text = "Protein: ${nutrition.protein.format()}")
         Text(text = "Carbs: ${nutrition.carbs.format()}")
         Text(text = "Fat: ${nutrition.fat.format()}")
+        Text(text = "Fiber: ${nutrition.fiber.format()}")
 
         Spacer(modifier = Modifier.height(8.dp))
 

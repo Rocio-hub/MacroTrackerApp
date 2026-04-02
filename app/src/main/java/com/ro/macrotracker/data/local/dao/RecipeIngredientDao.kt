@@ -22,6 +22,9 @@ interface RecipeIngredientDao {
     @Query("DELETE FROM recipe_ingredients WHERE id = :id")
     suspend fun deleteRecipeIngredient(id: Int)
 
+    @Query("SELECT COUNT(*) FROM recipe_ingredients WHERE ingredientId = :ingredientId")
+    suspend fun getUsageCountForIngredient(ingredientId: Int): Int
+
     @Update
     suspend fun updateRecipeIngredient(recipeIngredient: RecipeIngredient)
 }

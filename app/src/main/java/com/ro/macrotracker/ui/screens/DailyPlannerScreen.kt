@@ -1,8 +1,18 @@
 package com.ro.macrotracker.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -189,18 +199,29 @@ fun DailyPlannerScreen(
                                 TextButton(onClick = {
                                    viewModel.removeRecipe(recipe)
                                 }) {
-                                    Text("-")
+                                    Icon(Icons.Default.Remove, contentDescription = null)
                                 }
 
-                                Text(
-                                    "x$count",
-                                    style = MaterialTheme.typography.titleMedium
-                                )
+                                AnimatedContent(
+                                    targetState = count,
+                                    transitionSpec = {
+                                        if (targetState > initialState) {
+                                            slideInVertically { it } + fadeIn() togetherWith slideOutVertically { -it } + fadeOut()
+                                        } else {
+                                            slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut()
+                                        }.using(SizeTransform(clip = false))
+                                    }
+                                ) { targetCount ->
+                                    Text(
+                                        text = targetCount.toString(),
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                }
 
                                 TextButton(onClick = {
                                     viewModel.addRecipe(recipe)
                                 }) {
-                                    Text("+")
+                                    Icon(Icons.Default.Add, contentDescription = null)
                                 }
                             }
                         }

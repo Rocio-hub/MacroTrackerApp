@@ -73,6 +73,7 @@ dependencies {
     implementation(project(":shared"))
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+    implementation("androidx.compose.material:material-icons-extended:1.7.0")
 }
 
 configurations.all {

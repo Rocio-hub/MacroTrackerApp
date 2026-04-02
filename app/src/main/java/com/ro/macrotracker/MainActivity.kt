@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -23,6 +25,7 @@ import com.ro.macrotracker.ui.theme.MacroTrackerTheme
 import com.ro.macrotracker.ui.screens.RecipeDetailScreen
 import kotlinx.coroutines.launch
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.platform.LocalContext
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.data.mappers.toDomain
 import com.ro.macrotracker.model.Recipe
@@ -56,29 +59,26 @@ class MainActivity : ComponentActivity() {
         val recipeIngredientDao = db.recipeIngredientDao()
 
         setContent {
+            val scope = rememberCoroutineScope()
+            val snackbarHostState = remember { SnackbarHostState() }
+            val context = LocalContext.current
 
             var currentScreen by remember { mutableStateOf(Screen.RECIPES) }
             var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
             var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
+            var ingredientToDelete by remember { mutableStateOf<IngredientEntity?>(null) }
 
-            val ingredients: List<IngredientEntity> by ingredientDao
-                .getAllIngredients()
-                .collectAsState(initial = emptyList())
-
+            val ingredients: List<IngredientEntity> by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
             val domainIngredients = ingredients.map { it.toDomain() }
-
             val recipes by recipeDao.getAllRecipes().collectAsState(initial = emptyList())
-            val allRecipeIngredients by recipeIngredientDao
-                .getAllRecipeIngredients()
-                .collectAsState(initial = emptyList())
-
+            val allRecipeIngredients by recipeIngredientDao.getAllRecipeIngredients().collectAsState(initial = emptyList())
             val recipeIngredientsMap = allRecipeIngredients.groupBy { it.recipeId }
             val domainRecipes = recipes.map { it.toDomain() }
-            val scope = rememberCoroutineScope()
 
             MacroTrackerTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
+                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         TopAppBar(
                             title = {
@@ -112,6 +112,24 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     },
+                    floatingActionButton = {
+                        when (currentScreen) {
+                            Screen.RECIPES -> {
+                                FloatingActionButton(onClick = { currentScreen = Screen.ADD_RECIPE }) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                }
+                            }
+                            Screen.INGREDIENTS -> {
+                                FloatingActionButton(onClick = {
+                                    selectedIngredient = null
+                                    currentScreen = Screen.ADD_INGREDIENT
+                                }) {
+                                    Icon(Icons.Default.Add, contentDescription = null)
+                                }
+                            }
+                            else -> {}
+                        }
+                    },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
@@ -137,12 +155,9 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 ) { innerPadding ->
-
                     Box(modifier = Modifier.padding(innerPadding)) {
-
                         when (currentScreen) {
 
-                            // 🍽 RECIPES LIST
                             Screen.RECIPES -> {
                                 LazyColumn {
                                     items(domainRecipes) { recipe ->
@@ -156,12 +171,10 @@ class MainActivity : ComponentActivity() {
                                                 }
                                                 .padding(16.dp)
                                         )
-
                                     }
                                 }
                             }
 
-                            // 🥦 INGREDIENTS LIST
                             Screen.INGREDIENTS -> {
                                 LazyColumn {
                                     items(domainIngredients) { ingredient ->
@@ -173,7 +186,17 @@ class MainActivity : ComponentActivity() {
                                             },
                                             onDelete = {
                                                 scope.launch {
-                                                    ingredientDao.deleteIngredient(ingredient.toIngredientEntity())
+                                                    val usageCount = recipeIngredientDao.getUsageCountForIngredient(ingredient.id)
+
+                                                    if (usageCount > 0) {
+                                                        android.widget.Toast.makeText(
+                                                            context,
+                                                            "Cannot delete: Used in $usageCount recipes",
+                                                            android.widget.Toast.LENGTH_LONG
+                                                        ).show()
+                                                    } else {
+                                                        ingredientToDelete = ingredient.toIngredientEntity()
+                                                    }
                                                 }
                                             }
                                         )
@@ -239,8 +262,50 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                     }
+                    if (ingredientToDelete != null) {
+                        DeleteConfirmationDialog(
+                            ingredientName = ingredientToDelete!!.name,
+                            onDismiss = { ingredientToDelete = null },
+                            onConfirm = {
+                                scope.launch {
+                                    ingredientDao.deleteIngredient(ingredientToDelete!!)
+
+                                    // 2. THE TOAST (Shows after successful deletion)
+                                    android.widget.Toast.makeText(
+                                        context,
+                                        "Deleted ${ingredientToDelete!!.name}",
+                                        android.widget.Toast.LENGTH_SHORT
+                                    ).show()
+
+                                    ingredientToDelete = null
+                                }
+                            }
+                        )
+                    }
                 }
             }
         }
     }
+}
+@Composable
+fun DeleteConfirmationDialog(
+    ingredientName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete Ingredient?") },
+        text = { Text("Are you sure you want to delete \"$ingredientName\"? This cannot be undone.") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text("Delete", color = MaterialTheme.colorScheme.error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }

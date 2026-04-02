@@ -71,4 +71,14 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
     implementation(project(":shared"))
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+}
+
+configurations.all {
+    resolutionStrategy {
+        force("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
+        force("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
+        force("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    }
 }

@@ -13,18 +13,18 @@ import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
 import com.ro.macrotracker.utils.format
-import com.ro.macrotracker.domain.Nutrition
 import com.ro.macrotracker.data.mappers.toDomain
 import com.ro.macrotracker.domain.calculateRecipeNutrition
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ro.macrotracker.ui.viewmodel.DailyPlannerViewModel
 
 @Composable
 fun DailyPlannerScreen(
     recipes: List<Recipe>,
     ingredients: List<Ingredient>,
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
-    onRecipeClick: (Recipe) -> Unit   // 👈 NEW
+    onRecipeClick: (Recipe) -> Unit
 ){
-
     val context = LocalContext.current
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
@@ -41,26 +41,15 @@ fun DailyPlannerScreen(
         prefs.edit().putString("targetCalories", targetCalories).apply()
     }
 
-    var selectedRecipes by remember { mutableStateOf(mapOf<Recipe, Int>()) }
+    val viewModel: DailyPlannerViewModel = viewModel()
+    val selectedRecipes by viewModel.selectedRecipes.collectAsState()
 
-    val totalNutrition = selectedRecipes.entries.fold(
-        Nutrition()
-    ) { acc, (recipe, count) ->
-
-        val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-
-
-        val nutrition = calculateRecipeNutrition(
-            ris.map { it.toDomain() },
-            ingredients.map {it.toDomain() }
-        )
-
-        acc.copy(
-            calories = acc.calories + nutrition.calories * count,
-            protein = acc.protein + nutrition.protein * count,
-            carbs = acc.carbs + nutrition.carbs * count,
-            fat = acc.fat + nutrition.fat * count,
-            fiber = acc.fiber + nutrition.fiber * count
+    val totalNutrition = remember(selectedRecipes) {
+        viewModel.calculateTotalNutrition(
+            recipeIngredientsMap.mapValues { entry ->
+                entry.value.map { it.toDomain() }
+            },
+            ingredients.map { it.toDomain() }
         )
     }
 
@@ -157,7 +146,7 @@ fun DailyPlannerScreen(
                     ),
                     onClick = {
                         if (!isSelected) {
-                            selectedRecipes = selectedRecipes + (recipe to 1)
+                            viewModel.addRecipe(recipe)
                         }
                     }
                 ) {
@@ -198,12 +187,7 @@ fun DailyPlannerScreen(
                             ) {
 
                                 TextButton(onClick = {
-                                    val newCount = count - 1
-                                    selectedRecipes =
-                                        if (newCount <= 0)
-                                            selectedRecipes - recipe
-                                        else
-                                            selectedRecipes + (recipe to newCount)
+                                   viewModel.removeRecipe(recipe)
                                 }) {
                                     Text("-")
                                 }
@@ -214,7 +198,7 @@ fun DailyPlannerScreen(
                                 )
 
                                 TextButton(onClick = {
-                                    selectedRecipes = selectedRecipes + (recipe to (count + 1))
+                                    viewModel.addRecipe(recipe)
                                 }) {
                                     Text("+")
                                 }

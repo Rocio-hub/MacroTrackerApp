@@ -18,7 +18,7 @@ import com.ro.macrotracker.utils.format
 fun IngredientItem(
     ingredient: Ingredient,
     onClick: () -> Unit,
-    onDelete: () -> Unit   // 👈 NEW
+    onDelete: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -44,7 +44,6 @@ fun IngredientItem(
                 )
             }
 
-            // 🗑 DELETE BUTTON
             TextButton(onClick = onDelete) {
                 Text("Delete")
             }

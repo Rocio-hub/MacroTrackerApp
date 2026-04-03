@@ -1,6 +1,7 @@
 package com.ro.macrotracker
 
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -15,32 +16,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.ui.components.IngredientItem
-import com.ro.macrotracker.ui.screens.AddIngredientScreen
-import com.ro.macrotracker.ui.screens.AddRecipeScreen
-import com.ro.macrotracker.ui.screens.DailyPlannerScreen
-import com.ro.macrotracker.ui.theme.MacroTrackerTheme
-import com.ro.macrotracker.ui.screens.RecipeDetailScreen
-import kotlinx.coroutines.launch
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.ui.platform.LocalContext
-import com.ro.macrotracker.model.Ingredient
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ro.macrotracker.data.local.entity.Ingredient as IngredientEntity
 import com.ro.macrotracker.data.mappers.toDomain
-import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.data.mappers.toIngredientEntity
 import com.ro.macrotracker.data.mappers.toRecipeEntity
-import com.ro.macrotracker.data.local.entity.Ingredient as IngredientEntity
-
-enum class Screen {
-    RECIPES,
-    INGREDIENTS,
-    PLANNER,
-    ADD_RECIPE,
-    ADD_INGREDIENT,
-    RECIPE_DETAIL
-}
+import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.ui.MainViewModel
+import com.ro.macrotracker.ui.components.DeleteConfirmationDialog
+import com.ro.macrotracker.ui.components.IngredientItem
+import com.ro.macrotracker.ui.screens.*
+import com.ro.macrotracker.ui.theme.MacroTrackerTheme
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -59,143 +51,111 @@ class MainActivity : ComponentActivity() {
         val recipeIngredientDao = db.recipeIngredientDao()
 
         setContent {
-            val scope = rememberCoroutineScope()
-            val snackbarHostState = remember { SnackbarHostState() }
-            val context = LocalContext.current
+            val mainViewModel: MainViewModel = viewModel()
 
-            var currentScreen by remember { mutableStateOf(Screen.RECIPES) }
-            var selectedRecipe by remember { mutableStateOf<Recipe?>(null) }
-            var selectedIngredient by remember { mutableStateOf<Ingredient?>(null) }
+            val currentScreen: Screen by mainViewModel.currentScreen
+            val selectedRecipe: Recipe? by mainViewModel.selectedRecipe
+            val selectedIngredient: Ingredient? by mainViewModel.selectedIngredient
+
             var ingredientToDelete by remember { mutableStateOf<IngredientEntity?>(null) }
 
-            val ingredients: List<IngredientEntity> by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
-            val domainIngredients = ingredients.map { it.toDomain() }
+            val scope = rememberCoroutineScope()
+            val context = LocalContext.current
+
+            val ingredients by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
             val recipes by recipeDao.getAllRecipes().collectAsState(initial = emptyList())
             val allRecipeIngredients by recipeIngredientDao.getAllRecipeIngredients().collectAsState(initial = emptyList())
             val recipeIngredientsMap = allRecipeIngredients.groupBy { it.recipeId }
-            val domainRecipes = recipes.map { it.toDomain() }
 
             MacroTrackerTheme {
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
-                    snackbarHost = { SnackbarHost(snackbarHostState) },
                     topBar = {
                         TopAppBar(
                             title = {
-                                Text(
-                                    when (currentScreen) {
-                                        Screen.RECIPES -> "Recipes"
-                                        Screen.INGREDIENTS -> "Ingredients"
-                                        Screen.PLANNER -> "Planner"
-                                        Screen.ADD_RECIPE -> "Add Recipe"
-                                        Screen.ADD_INGREDIENT -> "Add Ingredient"
-                                        Screen.RECIPE_DETAIL -> selectedRecipe?.name ?: "Recipe"
-                                    }
-                                )
+                                Text(when(currentScreen) {
+                                    Screen.RECIPES -> "Recipes"
+                                    Screen.INGREDIENTS -> "Ingredients"
+                                    Screen.PLANNER -> "Planner"
+                                    Screen.ADD_RECIPE -> "Add Recipe"
+                                    Screen.ADD_INGREDIENT -> "Add Ingredient"
+                                    Screen.RECIPE_DETAIL -> selectedRecipe?.name ?: "Detail"
+                                })
                             },
                             navigationIcon = {
                                 if (currentScreen == Screen.RECIPE_DETAIL ||
                                     currentScreen == Screen.ADD_RECIPE ||
-                                    currentScreen == Screen.ADD_INGREDIENT
-                                ) {
-                                    TextButton(onClick = {
-                                        currentScreen = when (currentScreen) {
-                                            Screen.RECIPE_DETAIL -> Screen.RECIPES
-                                            Screen.ADD_RECIPE -> Screen.RECIPES
-                                            Screen.ADD_INGREDIENT -> Screen.INGREDIENTS
-                                            else -> currentScreen
-                                        }
-                                    }) {
+                                    currentScreen == Screen.ADD_INGREDIENT) {
+                                    TextButton(onClick = { mainViewModel.goBack() }) {
                                         Text("Back")
                                     }
                                 }
                             }
                         )
                     },
-                    floatingActionButton = {
-                        when (currentScreen) {
-                            Screen.RECIPES -> {
-                                FloatingActionButton(onClick = { currentScreen = Screen.ADD_RECIPE }) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                }
-                            }
-                            Screen.INGREDIENTS -> {
-                                FloatingActionButton(onClick = {
-                                    selectedIngredient = null
-                                    currentScreen = Screen.ADD_INGREDIENT
-                                }) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                }
-                            }
-                            else -> {}
-                        }
-                    },
                     bottomBar = {
                         NavigationBar {
                             NavigationBarItem(
                                 selected = currentScreen == Screen.RECIPES,
-                                onClick = { currentScreen = Screen.RECIPES },
+                                onClick = { mainViewModel.navigateTo(Screen.RECIPES) },
                                 label = { Text("Recipes") },
-                                icon = { Text("🍽") }
+                                icon = { Text("🍽️") }
                             )
-
                             NavigationBarItem(
                                 selected = currentScreen == Screen.INGREDIENTS,
-                                onClick = { currentScreen = Screen.INGREDIENTS },
+                                onClick = { mainViewModel.navigateTo(Screen.INGREDIENTS) },
                                 label = { Text("Ingredients") },
                                 icon = { Text("🥦") }
                             )
-
                             NavigationBarItem(
                                 selected = currentScreen == Screen.PLANNER,
-                                onClick = { currentScreen = Screen.PLANNER },
+                                onClick = { mainViewModel.navigateTo(Screen.PLANNER) },
                                 label = { Text("Planner") },
                                 icon = { Text("📊") }
                             )
+                        }
+                    },
+                    floatingActionButton = {
+                        if (currentScreen == Screen.RECIPES) {
+                            FloatingActionButton(onClick = { mainViewModel.navigateTo(Screen.ADD_RECIPE) }) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            }
+                        } else if (currentScreen == Screen.INGREDIENTS) {
+                            FloatingActionButton(onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT) }) {
+                                Icon(Icons.Default.Add, contentDescription = null)
+                            }
                         }
                     }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (currentScreen) {
-
                             Screen.RECIPES -> {
                                 LazyColumn {
-                                    items(domainRecipes) { recipe ->
+                                    items(recipes) { recipe ->
+                                        val domainRecipe = recipe.toDomain()
                                         Text(
-                                            text = recipe.name,
+                                            text = domainRecipe.name,
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .clickable {
-                                                    selectedRecipe = recipe
-                                                    currentScreen = Screen.RECIPE_DETAIL
-                                                }
+                                                .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = domainRecipe) }
                                                 .padding(16.dp)
                                         )
                                     }
                                 }
                             }
-
                             Screen.INGREDIENTS -> {
                                 LazyColumn {
-                                    items(domainIngredients) { ingredient ->
+                                    items(ingredients) { ingredient ->
                                         IngredientItem(
-                                            ingredient = ingredient.toIngredientEntity(),
-                                            onClick = {
-                                                selectedIngredient = ingredient
-                                                currentScreen = Screen.ADD_INGREDIENT
-                                            },
+                                            ingredient = ingredient,
+                                            onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT, ingredient = ingredient.toDomain()) },
                                             onDelete = {
                                                 scope.launch {
-                                                    val usageCount = recipeIngredientDao.getUsageCountForIngredient(ingredient.id)
-
-                                                    if (usageCount > 0) {
-                                                        android.widget.Toast.makeText(
-                                                            context,
-                                                            "Cannot delete: Used in $usageCount recipes",
-                                                            android.widget.Toast.LENGTH_LONG
-                                                        ).show()
+                                                    val count = recipeIngredientDao.getUsageCountForIngredient(ingredient.id)
+                                                    if (count > 0) {
+                                                        Toast.makeText(context, "Used in $count recipes", Toast.LENGTH_SHORT).show()
                                                     } else {
-                                                        ingredientToDelete = ingredient.toIngredientEntity()
+                                                        ingredientToDelete = ingredient
                                                     }
                                                 }
                                             }
@@ -203,65 +163,46 @@ class MainActivity : ComponentActivity() {
                                     }
                                 }
                             }
-
-                            // ➕ ADD RECIPE
                             Screen.ADD_RECIPE -> {
-                                AddRecipeScreen(
-                                    onSave = { recipe ->
-                                        scope.launch {
-                                            recipeDao.insertRecipe(recipe)
-                                            currentScreen = Screen.RECIPES
-                                        }
+                                AddRecipeScreen(onSave = {
+                                    scope.launch {
+                                        recipeDao.insertRecipe(it)
+                                        mainViewModel.navigateTo(Screen.RECIPES)
                                     }
-                                )
+                                })
                             }
-
-                            // ➕ ADD / EDIT INGREDIENT
                             Screen.ADD_INGREDIENT -> {
                                 AddIngredientScreen(
                                     ingredient = selectedIngredient?.toIngredientEntity(),
-                                    onSave = { ingredient ->
+                                    onSave = {
                                         scope.launch {
-                                            if (ingredient.id == 0)
-                                                ingredientDao.insertIngredient(ingredient)
-                                            else
-                                                ingredientDao.updateIngredient(ingredient)
-
-                                            selectedIngredient = null
-                                            currentScreen = Screen.INGREDIENTS
+                                            if (it.id == 0) ingredientDao.insertIngredient(it)
+                                            else ingredientDao.updateIngredient(it)
+                                            mainViewModel.navigateTo(Screen.INGREDIENTS)
                                         }
                                     },
-                                    onCancel = {
-                                        selectedIngredient = null
-                                        currentScreen = Screen.INGREDIENTS
-                                    }
+                                    onCancel = { mainViewModel.navigateTo(Screen.INGREDIENTS) }
                                 )
                             }
-
-                            // 📄 RECIPE DETAIL
                             Screen.RECIPE_DETAIL -> {
                                 RecipeDetailScreen(
                                     recipe = selectedRecipe!!.toRecipeEntity(),
                                     ingredientDao = ingredientDao,
                                     recipeIngredientDao = recipeIngredientDao,
-                                    onBack = { currentScreen = Screen.RECIPES }
+                                    onBack = { mainViewModel.navigateTo(Screen.RECIPES) }
                                 )
                             }
-
-                            // 📊 PLANNER
                             Screen.PLANNER -> {
                                 DailyPlannerScreen(
                                     recipes = recipes,
                                     ingredients = ingredients,
                                     recipeIngredientsMap = recipeIngredientsMap,
-                                    onRecipeClick = { recipe ->
-                                        selectedRecipe = recipe.toDomain()
-                                        currentScreen = Screen.RECIPE_DETAIL
-                                    }
+                                    onRecipeClick = { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = it.toDomain()) }
                                 )
                             }
                         }
                     }
+
                     if (ingredientToDelete != null) {
                         DeleteConfirmationDialog(
                             ingredientName = ingredientToDelete!!.name,
@@ -269,14 +210,6 @@ class MainActivity : ComponentActivity() {
                             onConfirm = {
                                 scope.launch {
                                     ingredientDao.deleteIngredient(ingredientToDelete!!)
-
-                                    // 2. THE TOAST (Shows after successful deletion)
-                                    android.widget.Toast.makeText(
-                                        context,
-                                        "Deleted ${ingredientToDelete!!.name}",
-                                        android.widget.Toast.LENGTH_SHORT
-                                    ).show()
-
                                     ingredientToDelete = null
                                 }
                             }
@@ -286,26 +219,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
-@Composable
-fun DeleteConfirmationDialog(
-    ingredientName: String,
-    onConfirm: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Delete Ingredient?") },
-        text = { Text("Are you sure you want to delete \"$ingredientName\"? This cannot be undone.") },
-        confirmButton = {
-            TextButton(onClick = onConfirm) {
-                Text("Delete", color = MaterialTheme.colorScheme.error)
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        }
-    )
 }

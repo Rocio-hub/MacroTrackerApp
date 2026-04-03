@@ -11,7 +11,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.data.local.entity.Ingredient
+import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.utils.format
 
 @Composable

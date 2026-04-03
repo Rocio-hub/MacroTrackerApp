@@ -10,7 +10,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.data.local.entity.Ingredient
+import com.ro.macrotracker.model.Ingredient
 import androidx.compose.foundation.lazy.items
 
 @Composable

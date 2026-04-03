@@ -19,33 +19,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.data.local.entity.Ingredient
-import com.ro.macrotracker.data.local.entity.Recipe
-import com.ro.macrotracker.data.local.entity.RecipeIngredient
 import com.ro.macrotracker.utils.format
-import com.ro.macrotracker.data.mappers.toDomain
+import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.calculateRecipeNutrition
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ro.macrotracker.ui.viewmodel.DailyPlannerViewModel
 
 @Composable
 fun DailyPlannerScreen(
-    recipes: List<Recipe>,
-    ingredients: List<Ingredient>,
-    recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
-    onRecipeClick: (Recipe) -> Unit
+    recipes: List<com.ro.macrotracker.model.Recipe>,
+    ingredients: List<com.ro.macrotracker.model.Ingredient>,
+    recipeIngredientsMap: Map<Int, List<com.ro.macrotracker.model.RecipeIngredient>>,
+    onRecipeClick: (com.ro.macrotracker.model.Recipe) -> Unit
 ){
     val context = LocalContext.current
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
 
-    // ✅ Load saved value
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
-    // ✅ Save when changed
     LaunchedEffect(targetCalories) {
         val prefs = context.getSharedPreferences("planner", 0)
         prefs.edit().putString("targetCalories", targetCalories).apply()
@@ -56,10 +53,8 @@ fun DailyPlannerScreen(
 
     val totalNutrition = remember(selectedRecipes) {
         viewModel.calculateTotalNutrition(
-            recipeIngredientsMap.mapValues { entry ->
-                entry.value.map { it.toDomain() }
-            },
-            ingredients.map { it.toDomain() }
+            recipeIngredientsMap,
+            ingredients
         )
     }
 
@@ -67,7 +62,6 @@ fun DailyPlannerScreen(
 
     Column(modifier = Modifier.padding(16.dp)) {
 
-        // 🎯 Target input
         OutlinedTextField(
             value = targetCalories,
             onValueChange = { targetCalories = it },
@@ -76,7 +70,6 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 📊 Current macros
         Column (modifier = Modifier.padding(bottom = 12.dp)) {
 
             Text(
@@ -97,7 +90,6 @@ fun DailyPlannerScreen(
             Text("Protein: ${totalNutrition.protein.format()} g")
         }
 
-        // 🔔 Status
         Text(
             text = when {
                 target == 0.0 -> "Enter a target"
@@ -115,7 +107,6 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // 📈 Progress bar
         LinearProgressIndicator(
             progress = {
                 if (target > 0)
@@ -131,14 +122,13 @@ fun DailyPlannerScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 📋 Recipes list
         LazyColumn {
             items(recipes) { recipe ->
 
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
                 val nutrition = calculateRecipeNutrition(
-                    ris.map { it.toDomain() },
-                    ingredients.map { it.toDomain() }
+                    ris, // Ya es List<com.ro.macrotracker.model.RecipeIngredient>
+                    ingredients
                 )
                 val count = selectedRecipes[recipe] ?: 0
                 val isSelected = count > 0

@@ -4,18 +4,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.domain.Nutrition
 import com.ro.macrotracker.domain.calculateRecipeNutrition
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.model.RecipeIngredient
 
 class DailyPlannerViewModel : ViewModel() {
 
-    var targetCalories by mutableStateOf("")
-
-    private val _selectedRecipes = MutableStateFlow<Map<Recipe, Int>>(emptyMap())
-    val selectedRecipes: StateFlow<Map<Recipe, Int>> = _selectedRecipes
+    private val _selectedRecipes = MutableStateFlow<Map<com.ro.macrotracker.model.Recipe, Int>>(emptyMap())
+    val selectedRecipes: StateFlow<Map<com.ro.macrotracker.model.Recipe, Int>> = _selectedRecipes
 
     fun calculateTotalNutrition(
         recipeIngredientsMap: Map<Int, List<com.ro.macrotracker.model.RecipeIngredient>>,
@@ -38,12 +38,12 @@ class DailyPlannerViewModel : ViewModel() {
         }
     }
 
-    fun addRecipe(recipe: Recipe) {
-        val current = _selectedRecipes.value[recipe] ?: 0
-        _selectedRecipes.value = _selectedRecipes.value + (recipe to (current + 1))
+    fun addRecipe(recipe: com.ro.macrotracker.model.Recipe) { // ✅ Aquí debe ser el MODEL
+        val currentCount = _selectedRecipes.value[recipe] ?: 0
+        _selectedRecipes.value = _selectedRecipes.value + (recipe to (currentCount + 1))
     }
 
-    fun removeRecipe(recipe: Recipe) {
+    fun removeRecipe(recipe: com.ro.macrotracker.model.Recipe) {
         val current = _selectedRecipes.value[recipe] ?: 0
         val newCount = current - 1
 

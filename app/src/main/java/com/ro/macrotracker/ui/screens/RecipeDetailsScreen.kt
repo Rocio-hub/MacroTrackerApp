@@ -8,34 +8,25 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
-import com.ro.macrotracker.data.local.dao.IngredientDao
-import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
-import com.ro.macrotracker.data.local.entity.Recipe
-import com.ro.macrotracker.data.local.entity.RecipeIngredient
+import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.model.RecipeIngredient
+import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.utils.format
 import kotlinx.coroutines.launch
 import com.ro.macrotracker.domain.calculateNutrition
-import com.ro.macrotracker.data.mappers.toDomain
 
 @Composable
 fun RecipeDetailScreen(
     recipe: Recipe,
-    ingredientDao: IngredientDao,
-    recipeIngredientDao: RecipeIngredientDao,
+    repository: Repository,
     onBack: () -> Unit
 ) {
-
-    val ingredients by ingredientDao.getAllIngredients().collectAsState(initial = emptyList())
-    val recipeIngredients by recipeIngredientDao
-        .getIngredientsForRecipe(recipe.id)
-        .collectAsState(initial = emptyList())
+    val ingredients by repository.getAllIngredients().collectAsState(initial = emptyList())
+    val recipeIngredients by repository.getIngredientsForRecipe(recipe.id).collectAsState(initial = emptyList())
 
     val nutritionInput = recipeIngredients.mapNotNull { ri ->
         val ingredient = ingredients.find { it.id == ri.ingredientId }
-
-        ingredient?.toDomain()?.let {
-            it to ri.quantityInGrams
-        }
+        ingredient?.let { it to ri.quantityInGrams }
     }
 
     val nutrition = calculateNutrition(nutritionInput)
@@ -47,17 +38,15 @@ fun RecipeDetailScreen(
     val scope = rememberCoroutineScope()
 
     Column(modifier = Modifier.padding(16.dp)) {
-
-        Text(text = recipe.name)
+        Text(text = recipe.name, style = MaterialTheme.typography.headlineSmall)
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        // ✅ Nutrition summary
         Text(text = "Calories: ${nutrition.calories.format()}")
-        Text(text = "Protein: ${nutrition.protein.format()}")
-        Text(text = "Carbs: ${nutrition.carbs.format()}")
-        Text(text = "Fat: ${nutrition.fat.format()}")
-        Text(text = "Fiber: ${nutrition.fiber.format()}")
+        Text(text = "Protein: ${nutrition.protein.format()}g")
+        Text(text = "Carbs: ${nutrition.carbs.format()}g")
+        Text(text = "Fat: ${nutrition.fat.format()}g")
+        Text(text = "Fiber: ${nutrition.fiber.format()}g")
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -69,71 +58,46 @@ fun RecipeDetailScreen(
 
         LazyColumn {
             items(recipeIngredients) { ri ->
-
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(8.dp)
-                ) {
-
+                Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                     Text("${ingredient?.name ?: "Unknown"}")
 
-                    Text("${ri.quantityInGrams.format()}${ingredient?.unit ?: ""}")
+                    Text("${ri.quantityInGrams.format()} ${ingredient?.unit ?: "g"}")
 
                     Spacer(modifier = Modifier.height(4.dp))
 
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
                         Button(onClick = {
                             editingItem = ri
                             newGrams = ri.quantityInGrams.toString()
-                        }) {
-                            Text("Edit")
-                        }
+                        }) { Text("Edit") }
 
                         Button(onClick = {
                             scope.launch {
-                                recipeIngredientDao.deleteRecipeIngredient(ri.id)
+                                repository.deleteRecipeIngredient(ri.id)
                             }
-                        }) {
-                            Text("Delete")
-                        }
+                        }) { Text("Delete") }
                     }
 
-                    // ✏️ EDIT MODE
                     if (editingItem?.id == ri.id) {
-
                         Spacer(modifier = Modifier.height(8.dp))
-
                         OutlinedTextField(
                             value = newGrams,
                             onValueChange = { newGrams = it },
-                            label = { Text("Grams / ml") }
+                            label = { Text("Quantity (${ingredient?.unit ?: "g"})") }
                         )
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-
                             Button(onClick = {
-                                val updated = newGrams.toDoubleOrNull()
-                                    ?: ri.quantityInGrams
-
+                                val updatedGrams = newGrams.toDoubleOrNull() ?: ri.quantityInGrams
                                 scope.launch {
-                                    recipeIngredientDao.updateRecipeIngredient(
-                                        ri.copy(quantityInGrams = updated)
-                                    )
+                                    repository.updateRecipeIngredient(ri.copy(quantityInGrams = updatedGrams))
                                     editingItem = null
                                 }
-                            }) {
-                                Text("Save")
-                            }
+                            }) { Text("Save") }
 
-                            Button(onClick = {
-                                editingItem = null
-                            }) {
-                                Text("Cancel")
-                            }
+                            Button(onClick = { editingItem = null }) { Text("Cancel") }
                         }
                     }
                 }
@@ -141,18 +105,16 @@ fun RecipeDetailScreen(
         }
 
         Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = onBack) {
-            Text("Back")
-        }
+        Button(onClick = onBack) { Text("Back") }
 
         if (showAdd) {
             AddIngredientToRecipeDialog(
                 ingredients = ingredients,
                 onAdd = { ingredientId, grams ->
                     scope.launch {
-                        recipeIngredientDao.insertRecipeIngredient(
+                        repository.insertRecipeIngredient(
                             RecipeIngredient(
+                                id = 0,
                                 recipeId = recipe.id,
                                 ingredientId = ingredientId,
                                 quantityInGrams = grams

@@ -1,40 +1,42 @@
 package com.ro.macrotracker.ui.screens
 
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.SizeTransform
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
-import androidx.compose.animation.togetherWith
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.ro.macrotracker.utils.format
-import com.ro.macrotracker.model.Recipe
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.calculateRecipeNutrition
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ro.macrotracker.ui.viewmodel.DailyPlannerViewModel
+import com.ro.macrotracker.utils.format
 
 @Composable
 fun DailyPlannerScreen(
-    recipes: List<com.ro.macrotracker.model.Recipe>,
-    ingredients: List<com.ro.macrotracker.model.Ingredient>,
-    recipeIngredientsMap: Map<Int, List<com.ro.macrotracker.model.RecipeIngredient>>,
-    onRecipeClick: (com.ro.macrotracker.model.Recipe) -> Unit
-){
+    recipes: List<Recipe>,
+    ingredients: List<Ingredient>,
+    recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
+    onRecipeClick: (Recipe) -> Unit
+) {
     val context = LocalContext.current
+    val viewModel: DailyPlannerViewModel = viewModel()
+    val selectedRecipes by viewModel.selectedRecipes.collectAsState()
+
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
 
@@ -48,147 +50,135 @@ fun DailyPlannerScreen(
         prefs.edit().putString("targetCalories", targetCalories).apply()
     }
 
-    val viewModel: DailyPlannerViewModel = viewModel()
-    val selectedRecipes by viewModel.selectedRecipes.collectAsState()
-
-    val totalNutrition = remember(selectedRecipes) {
-        viewModel.calculateTotalNutrition(
-            recipeIngredientsMap,
-            ingredients
-        )
+    val totalNutrition = remember(selectedRecipes, recipeIngredientsMap, ingredients) {
+        viewModel.calculateTotalNutrition(recipeIngredientsMap, ingredients)
     }
-
     val totalCalories = totalNutrition.calories
 
-    Column(modifier = Modifier.padding(16.dp)) {
-
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
         OutlinedTextField(
             value = targetCalories,
             onValueChange = { targetCalories = it },
-            label = { Text("Daily calories target") }
+            label = { Text("Daily Calories Target") },
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            shape = MaterialTheme.shapes.medium
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
+            ),
+            shape = MaterialTheme.shapes.extraLarge
+        ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text("Daily Progress", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                        Text("${totalCalories.format()} / ${target.format()} kcal",
+                            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+                    }
 
-        Column (modifier = Modifier.padding(bottom = 12.dp)) {
+                    Surface(
+                        color = when {
+                            target == 0.0 -> MaterialTheme.colorScheme.surfaceVariant
+                            totalCalories > target -> MaterialTheme.colorScheme.errorContainer
+                            else -> MaterialTheme.colorScheme.primaryContainer
+                        },
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text(
+                            text = when {
+                                target == 0.0 -> "Set Target"
+                                totalCalories > target -> "Over Limit"
+                                else -> "Left: ${(target - totalCalories).format()}"
+                            },
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
 
-            Text(
-                "Daily target",
-                style = MaterialTheme.typography.labelMedium
-            )
+                Spacer(modifier = Modifier.height(12.dp))
 
-            Text(
-                "${totalCalories.format()} / ${target.format()} kcal",
-                style = MaterialTheme.typography.headlineSmall
-            )
+                LinearProgressIndicator(
+                    progress = { if (target > 0) (totalCalories / target).toFloat().coerceAtMost(1f) else 0f },
+                    modifier = Modifier.fillMaxWidth().height(8.dp),
+                    strokeCap = StrokeCap.Round,
+                    color = if (totalCalories > target) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
 
-            Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-            Text("Fat: ${totalNutrition.fat.format()} g")
-            Text("Carbs: ${totalNutrition.carbs.format()} g")
-            Text("Fiber: ${totalNutrition.fiber.format()} g")
-            Text("Protein: ${totalNutrition.protein.format()} g")
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    MacroSummaryItem("Protein", totalNutrition.protein, Color(0xFFEF5350))
+                    MacroSummaryItem("Carbs", totalNutrition.carbs, Color(0xFF42A5F5))
+                    MacroSummaryItem("Fat", totalNutrition.fat, Color(0xFFFFB300))
+                    MacroSummaryItem("Fiber", totalNutrition.fiber, Color(0xFF66BB6A))
+                }
+            }
         }
 
-        Text(
-            text = when {
-                target == 0.0 -> "Enter a target"
-                totalCalories > target -> "🔴 Over calories"
-                totalCalories == target -> "✅ Perfect"
-                else -> "🟢 Under target"
-            },
-            color = when {
-                target == 0.0 -> MaterialTheme.colorScheme.onSurfaceVariant
-                totalCalories > target -> MaterialTheme.colorScheme.error
-                totalCalories == target -> MaterialTheme.colorScheme.primary
-                else -> MaterialTheme.colorScheme.primary
-            }
-        )
+        Text("Select Recipes", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        LinearProgressIndicator(
-            progress = {
-                if (target > 0)
-                    (totalCalories / target).toFloat().coerceAtMost(1f)
-                else 0f
-            },
-            color = if (totalCalories > target && target > 0)
-                MaterialTheme.colorScheme.error
-            else
-                MaterialTheme.colorScheme.primary,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        LazyColumn {
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
             items(recipes) { recipe ->
-
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
-                val nutrition = calculateRecipeNutrition(
-                    ris, // Ya es List<com.ro.macrotracker.model.RecipeIngredient>
-                    ingredients
-                )
+                val nutrition = calculateRecipeNutrition(ris, ingredients)
                 val count = selectedRecipes[recipe] ?: 0
                 val isSelected = count > 0
 
                 Card(
-                    elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else
-                            MaterialTheme.colorScheme.surface
+                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
                     ),
-                    onClick = {
-                        if (!isSelected) {
-                            viewModel.addRecipe(recipe)
-                        }
-                    }
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+                    onClick = { if (!isSelected) viewModel.addRecipe(recipe) }
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
-
-                        // 🧾 Recipe info
-                        Text(
-                            text = recipe.name,
-                            style = MaterialTheme.typography.titleMedium
-                        )
-
-                        TextButton(
-                            onClick = {
-                                onRecipeClick(recipe)
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(recipe.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                            IconButton(onClick = { onRecipeClick(recipe) }) {
+                                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                             }
-                        ) {
-                            Text("Details")
                         }
 
-                        Text(
-                            text = "${nutrition.calories.format()} kcal | " +
-                                    "${nutrition.fat.format()}F | " +
-                                    "${nutrition.carbs.format()}C | " +
-                                    "${nutrition.fiber.format()}Fi | " +
-                                    "${nutrition.protein.format()}P",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Text("${nutrition.calories.format()} kcal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+                            VerticalDivider(modifier = Modifier.height(16.dp), thickness = 1.dp)
+                            MacroBadge("P", nutrition.protein, Color(0xFFFFEBEE))
+                            MacroBadge("C", nutrition.carbs, Color(0xFFE3F2FD))
+                            MacroBadge("F", nutrition.fat, Color(0xFFFFF8E1))
+                        }
 
-                        // 👇 Controls only if selected
                         if (isSelected) {
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
+                            HorizontalDivider(
+                                modifier = Modifier.padding(vertical = 12.dp),
+                                color = MaterialTheme.colorScheme.outlineVariant
+                            )
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-
-                                TextButton(onClick = {
-                                   viewModel.removeRecipe(recipe)
-                                }) {
+                                IconButton(onClick = { viewModel.removeRecipe(recipe) }) {
                                     Icon(Icons.Default.Remove, contentDescription = null)
                                 }
 
@@ -196,21 +186,17 @@ fun DailyPlannerScreen(
                                     targetState = count,
                                     transitionSpec = {
                                         if (targetState > initialState) {
-                                            slideInVertically { it } + fadeIn() togetherWith slideOutVertically { -it } + fadeOut()
+                                            (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
                                         } else {
-                                            slideInVertically { -it } + fadeIn() togetherWith slideOutVertically { it } + fadeOut()
+                                            (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
                                         }.using(SizeTransform(clip = false))
-                                    }
+                                    },
+                                    label = "countAnim"
                                 ) { targetCount ->
-                                    Text(
-                                        text = targetCount.toString(),
-                                        style = MaterialTheme.typography.titleMedium
-                                    )
+                                    Text(targetCount.toString(), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 20.dp))
                                 }
 
-                                TextButton(onClick = {
-                                    viewModel.addRecipe(recipe)
-                                }) {
+                                IconButton(onClick = { viewModel.addRecipe(recipe) }) {
                                     Icon(Icons.Default.Add, contentDescription = null)
                                 }
                             }
@@ -219,5 +205,27 @@ fun DailyPlannerScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+fun MacroSummaryItem(label: String, value: Double, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(modifier = Modifier.size(16.dp, 4.dp).background(color, MaterialTheme.shapes.extraSmall))
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+        Text("${value.format()}g", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    }
+}
+
+@Composable
+fun MacroBadge(label: String, value: Double, color: Color) {
+    Surface(color = color, shape = MaterialTheme.shapes.small) {
+        Text(
+            text = "$label: ${value.format()}g",
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }

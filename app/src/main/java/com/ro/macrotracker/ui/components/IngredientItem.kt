@@ -35,7 +35,10 @@ fun IngredientItem(
 
                 Text(text = ingredient.name)
 
-                Text(text = "Calories: ${ingredient.caloriesPer100g.format()} kcal")
+                Text(
+                    text = "${ingredient.caloriesPer100g.format()} kcal / 100${ingredient.unit}",
+                    style = androidx.compose.material3.MaterialTheme.typography.bodyMedium
+                )
 
                 Text(
                     text = "Protein: ${ingredient.proteinPer100g}g | " +

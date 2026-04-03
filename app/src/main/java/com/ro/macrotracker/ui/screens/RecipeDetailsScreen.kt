@@ -63,7 +63,10 @@ fun RecipeDetailScreen(
                 Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                     Text("${ingredient?.name ?: "Unknown"}")
 
-                    Text("${ri.quantityInGrams.format()} ${ingredient?.unit ?: "g"}")
+                    Text(
+                        text = "${ri.quantityInGrams.format()} ${ingredient?.unit ?: "g"}",
+                        style = MaterialTheme.typography.bodySmall
+                    )
 
                     Spacer(modifier = Modifier.height(4.dp))
 

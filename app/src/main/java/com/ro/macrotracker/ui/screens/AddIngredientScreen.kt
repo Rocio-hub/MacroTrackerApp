@@ -7,12 +7,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.model.Ingredient
@@ -49,14 +52,12 @@ fun AddIngredientScreen(
 
             Button(
                 onClick = { unit = "g" },
-                colors = ButtonDefaults.run {
-                    buttonColors(
-                                containerColor = if (unit == "g")
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.surfaceVariant
-                            )
-                }
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = if (unit == "g") MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (unit == "g") MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
             ) {
                 Text("g")
             }
@@ -64,10 +65,10 @@ fun AddIngredientScreen(
             Button(
                 onClick = { unit = "ml" },
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = if (unit == "ml")
-                        MaterialTheme.colorScheme.primary
-                    else
-                        MaterialTheme.colorScheme.surfaceVariant
+                    containerColor = if (unit == "ml") MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = if (unit == "ml") MaterialTheme.colorScheme.onPrimary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
                 Text("ml")
@@ -77,35 +78,35 @@ fun AddIngredientScreen(
         OutlinedTextField(
             value = calories,
             onValueChange = { calories = it },
-            label = { Text("Calories per 100g/ml") },
+            label = { Text("Calories per 100 $unit") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = protein,
             onValueChange = { protein = it },
-            label = { Text("Protein per 100g") },
+            label = { Text("Protein per 100 $unit") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = carbs,
             onValueChange = { carbs = it },
-            label = { Text("Carbs per 100g") },
+            label = { Text("Carbs per 100 $unit") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = fat,
             onValueChange = { fat = it },
-            label = { Text("Fat per 100g") },
+            label = { Text("Fat per 100 $unit") },
             modifier = Modifier.fillMaxWidth()
         )
 
         OutlinedTextField(
             value = fiber,
             onValueChange = { fiber = it },
-            label = { Text("Fiber per 100g/ml") },
+            label = { Text("Fiber per 100 $unit") },
             modifier = Modifier.fillMaxWidth()
         )
 

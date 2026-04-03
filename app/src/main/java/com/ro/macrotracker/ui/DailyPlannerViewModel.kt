@@ -11,11 +11,15 @@ import kotlinx.coroutines.flow.StateFlow
 import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.RecipeIngredient
+import kotlinx.coroutines.flow.asStateFlow
 
 class DailyPlannerViewModel : ViewModel() {
 
     private val _selectedRecipes = MutableStateFlow<Map<com.ro.macrotracker.model.Recipe, Int>>(emptyMap())
     val selectedRecipes: StateFlow<Map<com.ro.macrotracker.model.Recipe, Int>> = _selectedRecipes
+
+    private val _plannerSearchQuery = MutableStateFlow("")
+    val plannerSearchQuery = _plannerSearchQuery.asStateFlow()
 
     fun calculateTotalNutrition(
         recipeIngredientsMap: Map<Int, List<com.ro.macrotracker.model.RecipeIngredient>>,
@@ -52,5 +56,18 @@ class DailyPlannerViewModel : ViewModel() {
                 _selectedRecipes.value - recipe
             else
                 _selectedRecipes.value + (recipe to newCount)
+    }
+
+    fun onSearchQueryChange(newQuery: String) {
+        _plannerSearchQuery.value = newQuery
+    }
+
+    fun getFilteredRecipes(allRecipes: List<Recipe>): List<Recipe> {
+        val query = _plannerSearchQuery.value
+        return if (query.isBlank()) {
+            allRecipes
+        } else {
+            allRecipes.filter { it.name.contains(query, ignoreCase = true) }
+        }
     }
 }

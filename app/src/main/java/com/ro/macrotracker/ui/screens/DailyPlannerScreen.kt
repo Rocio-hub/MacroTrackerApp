@@ -7,8 +7,10 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -39,6 +41,12 @@ fun DailyPlannerScreen(
 
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
+
+    val searchQuery by viewModel.plannerSearchQuery.collectAsState()
+
+    val filteredRecipes = remember(searchQuery, recipes) {
+        viewModel.getFilteredRecipes(recipes)
+    }
 
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
@@ -128,6 +136,35 @@ fun DailyPlannerScreen(
                     MacroSummaryItem("Fat", totalNutrition.fat, Color(0xFFFFB300))
                     MacroSummaryItem("Fiber", totalNutrition.fiber, Color(0xFF66BB6A))
                 }
+            }
+        }
+
+        Text("Add to your day", style = MaterialTheme.typography.titleMedium)
+
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { viewModel.onSearchQueryChange(it) },
+            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+            placeholder = { Text("Search recipe to add...") },
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+            trailingIcon = {
+                if (searchQuery.isNotEmpty()) {
+                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
+                        Icon(Icons.Default.Clear, contentDescription = null)
+                    }
+                }
+            },
+            shape = MaterialTheme.shapes.medium,
+            singleLine = true
+        )
+
+        // --- LISTADO USANDO LAS FILTRADAS ---
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(filteredRecipes) { recipe -> // Usamos filteredRecipes aquí
+                // ... (el código de la Card de la receta que ya teníamos) ...
             }
         }
 

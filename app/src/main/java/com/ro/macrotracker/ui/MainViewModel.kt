@@ -8,9 +8,7 @@ import com.ro.macrotracker.Screen
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 class MainViewModel (private val repository: Repository) : ViewModel() {
@@ -24,6 +22,11 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     private val _selectedIngredient = mutableStateOf<Ingredient?>(null)
     val selectedIngredient: State<Ingredient?> = _selectedIngredient
 
+    private val _ingredientSearchQuery = MutableStateFlow("")
+    val ingredientSearchQuery = _ingredientSearchQuery.asStateFlow()
+
+    private val _recipeSearchQuery = MutableStateFlow("")
+    val recipeSearchQuery = _recipeSearchQuery.asStateFlow()
 
     val ingredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -31,6 +34,20 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     val recipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    val filteredIngredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
+        .combine(_ingredientSearchQuery) { list, query ->
+            if (query.isBlank()) list
+            else list.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    fun onIngredientSearchQueryChange(newQuery: String) {
+        _ingredientSearchQuery.value = newQuery
+    }
+
+    fun onRecipeSearchQueryChange(newQuery: String) {
+        _recipeSearchQuery.value = newQuery
+    }
 
     fun navigateTo(screen: Screen, recipe: Recipe? = null, ingredient: Ingredient? = null) {
         _selectedRecipe.value = recipe
@@ -68,11 +85,14 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
 
     val allRecipeIngredients: StateFlow<List<com.ro.macrotracker.model.RecipeIngredient>> =
         repository.getAllRecipeIngredients()
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val filteredRecipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .combine(_recipeSearchQuery) { list, query ->
+            if (query.isBlank()) list
+            else list.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     suspend fun getUsageCount(ingredientId: Int): Int {
         return repository.getUsageCountForIngredient(ingredientId)

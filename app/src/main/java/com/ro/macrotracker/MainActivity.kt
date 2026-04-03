@@ -11,6 +11,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -24,8 +25,11 @@ import com.ro.macrotracker.ui.components.DeleteConfirmationDialog
 import com.ro.macrotracker.ui.components.IngredientItem
 import com.ro.macrotracker.ui.screens.*
 import com.ro.macrotracker.ui.theme.MacroTrackerTheme
-import kotlinx.coroutines.launch
+import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.text.font.FontWeight
 import com.ro.macrotracker.data.mappers.toDomain
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
@@ -48,6 +52,8 @@ class MainActivity : ComponentActivity() {
             val currentScreen: Screen by mainViewModel.currentScreen
             val selectedRecipe by mainViewModel.selectedRecipe
             val selectedIngredient by mainViewModel.selectedIngredient
+
+            val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
 
             val ingredients by mainViewModel.ingredients.collectAsState()
             val recipes by mainViewModel.recipes.collectAsState()
@@ -120,40 +126,86 @@ class MainActivity : ComponentActivity() {
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (currentScreen) {
                             Screen.RECIPES -> {
-                                LazyColumn {
-                                    items(recipes) { recipe ->
-                                        Text(
-                                            text = recipe.name,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
-                                                .padding(16.dp)
-                                        )
+                                val recipeSearchQuery by mainViewModel.recipeSearchQuery.collectAsState()
+                                val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
+
+                                Column {
+                                    OutlinedTextField(
+                                        value = recipeSearchQuery,
+                                        onValueChange = { mainViewModel.onRecipeSearchQueryChange(it) },
+                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                                        placeholder = { Text("Search recipes...") },
+                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                        trailingIcon = {
+                                            if (recipeSearchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { mainViewModel.onRecipeSearchQueryChange("") }) {
+                                                    Icon(Icons.Default.Clear, contentDescription = null)
+                                                }
+                                            }
+                                        },
+                                        shape = MaterialTheme.shapes.medium,
+                                        singleLine = true
+                                    )
+
+                                    LazyColumn(modifier = Modifier.weight(1f)) {
+                                        items(filteredRecipes) { recipe ->
+                                            Text(
+                                                text = recipe.name,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
+                                                    .padding(16.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
                             Screen.INGREDIENTS -> {
-                                LazyColumn {
-                                    items(ingredients) { ingredient ->
-                                        IngredientItem(
-                                            ingredient = ingredient,
-                                            onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT, ingredient = ingredient) },
-                                            onDelete = {
-                                                scope.launch {
-                                                    val count = mainViewModel.getUsageCount(ingredient.id)
-                                                    if (count > 0) {
-                                                        Toast.makeText(context, "In use by $count recipes", Toast.LENGTH_SHORT).show()
-                                                    } else {
-                                                        ingredientToDelete = ingredient
-                                                    }
+                                val searchQuery by mainViewModel.ingredientSearchQuery.collectAsState()
+                                val filteredIngredients by mainViewModel.filteredIngredients.collectAsState()
+
+                                Column {
+                                    OutlinedTextField(
+                                        value = searchQuery,
+                                        onValueChange = { mainViewModel.onIngredientSearchQueryChange(it) },
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        placeholder = { Text("Search ingredients...") },
+                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                                        trailingIcon = {
+                                            if (searchQuery.isNotEmpty()) {
+                                                IconButton(onClick = { mainViewModel.onIngredientSearchQueryChange("") }) {
+                                                    Icon(Icons.Default.Clear, contentDescription = null)
                                                 }
                                             }
-                                        )
+                                        },
+                                        shape = MaterialTheme.shapes.medium,
+                                        singleLine = true
+                                    )
+
+                                    LazyColumn(modifier = Modifier.weight(1f)) {
+                                        items(filteredIngredients) { ingredient ->
+                                            IngredientItem(
+                                                ingredient = ingredient,
+                                                onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT, ingredient = ingredient) },
+                                                onDelete = {
+                                                    scope.launch {
+                                                        val count = mainViewModel.getUsageCount(ingredient.id)
+                                                        if (count > 0) {
+                                                            Toast.makeText(context, "In use by $count recipes", Toast.LENGTH_SHORT).show()
+                                                        } else {
+                                                            ingredientToDelete = ingredient
+                                                        }
+                                                    }
+                                                }
+                                            )
+                                        }
                                     }
                                 }
                             }
                             Screen.ADD_RECIPE -> {
-                                AddRecipeScreen(onSave = { recipeEntity -> // 'it' es una Entity de Room
+                                AddRecipeScreen(onSave = { recipeEntity ->
                                     val recipeModel = recipeEntity.toDomain()
                                     mainViewModel.saveRecipe(recipeModel)
                                     mainViewModel.navigateTo(Screen.RECIPES)
@@ -177,9 +229,7 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             Screen.PLANNER -> {
-                                val recipeIngredientsMap = remember(allRI) {
-                                    allRI.groupBy { it.recipeId }
-                                }
+                                val recipeIngredientsMap = remember(allRI) { allRI.groupBy { it.recipeId } }
 
                                 DailyPlannerScreen(
                                     recipes = recipes,

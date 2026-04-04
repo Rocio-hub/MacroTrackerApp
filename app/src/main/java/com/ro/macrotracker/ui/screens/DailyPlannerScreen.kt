@@ -9,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -95,11 +96,14 @@ fun DailyPlannerScreen(
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
+    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun DateSelector(
         selectedDate: Long,
         onDateChange: (Long) -> Unit
     ) {
+        var showCalendar by remember { mutableStateOf(false) }
+
         val sdf = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
         val dateText = remember(selectedDate) {
             val calendar = Calendar.getInstance()
@@ -108,11 +112,23 @@ fun DailyPlannerScreen(
             calendar.add(Calendar.DAY_OF_YEAR, -1)
             val yesterday = calendar.timeInMillis
 
+            calendar.add(Calendar.DAY_OF_YEAR, +1)
+            val tomorrow = calendar.timeInMillis
+
             when {
                 isSameDay(selectedDate, today) -> "Today"
                 isSameDay(selectedDate, yesterday) -> "Yesterday"
+                isSameDay(selectedDate, tomorrow) -> "Tomorrow"
                 else -> sdf.format(Date(selectedDate))
             }
+        }
+
+        if (showCalendar) {
+            CalendarDialog(
+                initialSelectedDate = selectedDate,
+                onDateSelected = { onDateChange(it) },
+                onDismiss = { showCalendar = false }
+            )
         }
 
         Row(
@@ -123,17 +139,33 @@ fun DailyPlannerScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = { onDateChange(selectedDate - 24 * 60 * 60 * 1000) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous Day")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = null)
             }
 
-            Text(
-                text = dateText,
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
+            Button(
+                onClick = { showCalendar = true },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ),
+                shape = MaterialTheme.shapes.medium,
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.DateRange,
+                    contentDescription = null,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = dateText,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
             IconButton(onClick = { onDateChange(selectedDate + 24 * 60 * 60 * 1000) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Day")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
             }
         }
     }
@@ -422,5 +454,38 @@ fun MacroBadge(label: String, value: Double, color: Color) {
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CalendarDialog(
+    initialSelectedDate: Long,
+    onDateSelected: (Long) -> Unit,
+    onDismiss: () -> Unit
+) {
+    val datePickerState = rememberDatePickerState(
+        initialSelectedDateMillis = initialSelectedDate
+    )
+
+    DatePickerDialog(
+        onDismissRequest = onDismiss,
+        confirmButton = {
+            TextButton(onClick = {
+                datePickerState.selectedDateMillis?.let {
+                    onDateSelected(it)
+                }
+                onDismiss()
+            }) {
+                Text("OK")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    ) {
+        DatePicker(state = datePickerState)
     }
 }

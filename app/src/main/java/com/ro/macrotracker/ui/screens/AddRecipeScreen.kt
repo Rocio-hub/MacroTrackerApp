@@ -110,7 +110,7 @@ fun AddRecipeScreen(
                                 }
                             },
                             modifier = Modifier.width(100.dp),
-                            label = { Text(ing.unit) },
+                            label = { Text(" ${ing.unit}") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             singleLine = true
                         )

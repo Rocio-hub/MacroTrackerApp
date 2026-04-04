@@ -33,7 +33,6 @@ import com.ro.macrotracker.model.Ingredient
 
 @Composable
 fun AddIngredientScreen(
-    modifier: Modifier = Modifier,
     ingredient: Ingredient? = null,
     onSave: (Ingredient) -> Unit,
     onCancel: () -> Unit
@@ -86,7 +85,7 @@ fun AddIngredientScreen(
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
 
             Button(
-                onClick = { unit = "g" },
+                onClick = { unit = " g" },
                 colors = ButtonDefaults.buttonColors(
                     containerColor = if (unit == "g") MaterialTheme.colorScheme.primary
                     else MaterialTheme.colorScheme.surfaceVariant,
@@ -94,7 +93,7 @@ fun AddIngredientScreen(
                     else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             ) {
-                Text("g")
+                Text(" g")
             }
 
             Button(

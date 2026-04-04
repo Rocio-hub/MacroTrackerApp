@@ -51,9 +51,9 @@ fun RecipeDetailScreen(
                 Text("Total Nutrition", style = MaterialTheme.typography.titleSmall)
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("${nutrition.calories.format()} kcal")
-                    Text("P: ${nutrition.protein.format()}g")
-                    Text("C: ${nutrition.carbs.format()}g")
-                    Text("F: ${nutrition.fat.format()}g")
+                    Text("P: ${nutrition.protein.format()} g")
+                    Text("C: ${nutrition.carbs.format()} g")
+                    Text("F: ${nutrition.fat.format()} g")
                 }
             }
         }
@@ -95,7 +95,11 @@ fun RecipeDetailScreen(
                                 }
                             },
                             modifier = Modifier.width(90.dp),
-                            suffix = { Text(ingredient?.unit ?: "g") },
+                            suffix = {
+                                ingredient?.unit?.let { unit ->
+                                    Text(" $unit")
+                                }
+                            },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )

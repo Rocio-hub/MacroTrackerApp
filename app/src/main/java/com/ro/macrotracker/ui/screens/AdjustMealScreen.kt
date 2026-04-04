@@ -67,7 +67,7 @@ fun AdjustMealScreen(
                                 if (index != -1) editableItems[index] = ing to newAmount
                             },
                             modifier = Modifier.width(90.dp),
-                            label = { Text(ing.unit) },
+                            label = { Text(" ${ing.unit}") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                             singleLine = true
                         )

@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -76,16 +77,23 @@ class MainActivity : ComponentActivity() {
 
             MacroTrackerTheme {
                 if (showWelcomeDialog) {
-                    val focusManager = LocalFocusManager.current
                     AlertDialog(
                         onDismissRequest = { },
                         title = { Text("Welcome to MacroTracker!") },
                         text = {
-                            Column(modifier = Modifier.pointerInput(Unit) {
-                                detectTapGestures(onTap = { focusManager.clearFocus() })
-                            }) {
+                            val dialogFocusManager = LocalFocusManager.current
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(Unit) {
+                                        detectTapGestures(onTap = {
+                                            dialogFocusManager.clearFocus()
+                                        })
+                                    }
+                            ) {
                                 Text("Let's set your daily calorie goal to personalize your experience.")
                                 Spacer(modifier = Modifier.height(16.dp))
+                                Box(Modifier.focusable())
                                 OutlinedTextField(
                                     value = tempTargetCalories,
                                     onValueChange = { tempTargetCalories = it },
@@ -95,7 +103,7 @@ class MainActivity : ComponentActivity() {
                                         imeAction = ImeAction.Done
                                     ),
                                     keyboardActions = KeyboardActions(
-                                        onDone = { focusManager.clearFocus() }
+                                        onDone = { dialogFocusManager.clearFocus() }
                                     ),
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth()

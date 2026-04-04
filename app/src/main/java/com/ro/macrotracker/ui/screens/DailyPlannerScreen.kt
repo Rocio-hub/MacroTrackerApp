@@ -87,6 +87,8 @@ fun DailyPlannerScreen(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
 
+    var sessionIdToDelete by remember { mutableStateOf<Long?>(null) }
+
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
         targetCalories = prefs.getString("targetCalories", "") ?: ""
@@ -114,11 +116,12 @@ fun DailyPlannerScreen(
                 confirmButton = {
                     TextButton(
                         onClick = {
-                            recipeToDelete?.let { recipe ->
-                                mainViewModel.deleteMeal(recipe.id)
+                            sessionIdToDelete?.let { sessionId ->
+                                mainViewModel.deleteMealBySession(sessionId)
                             }
                             showDeleteDialog = false
                             recipeToDelete = null
+                            sessionIdToDelete = null
                         },
                         colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
                     ) {
@@ -190,28 +193,39 @@ fun DailyPlannerScreen(
             verticalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            val eatenRecipes = dailyLogs.groupBy { it.recipeId }
-            if (eatenRecipes.isNotEmpty()) {
-                item { Text("Consumed Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
-                items(eatenRecipes.keys.toList()) { recipeId ->
-                    val recipe = recipes.find { it.id == recipeId }
-                    val logsForThisRecipe = eatenRecipes[recipeId] ?: emptyList()
-                    val mealCals = logsForThisRecipe.sumOf { log ->
+            val eatenMeals = dailyLogs.groupBy { it.mealSessionId }
+
+            if (eatenMeals.isNotEmpty()) {
+                item {
+                    Text("Consumed Today",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                }
+
+                items(eatenMeals.keys.toList().sortedDescending()) { sessionId ->
+                    val logsInThisMeal = eatenMeals[sessionId] ?: emptyList()
+                    val firstLog = logsInThisMeal.firstOrNull()
+                    val recipe = recipes.find { it.id == firstLog?.recipeId }
+
+                    val mealCals = logsInThisMeal.sumOf { log ->
                         val ing = ingredients.find { it.id == log.ingredientId }
                         ((ing?.caloriesPer100g ?: 0.0) * log.amount) / 100.0
                     }
+
                     Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                        )
                     ) {
                         ListItem(
                             headlineContent = { Text(recipe?.name ?: "Unknown", fontWeight = FontWeight.Bold) },
                             supportingContent = { Text("${mealCals.format()} kcal") },
                             trailingContent = {
                                 IconButton(onClick = {
-                                    val selectedRecipe = recipes.find { it.id == recipeId }
-
-                                    recipeToDelete = selectedRecipe
+                                    recipeToDelete = recipe
+                                    sessionIdToDelete = sessionId
                                     showDeleteDialog = true
                                 }) {
                                     Icon(
@@ -220,8 +234,7 @@ fun DailyPlannerScreen(
                                         tint = MaterialTheme.colorScheme.error
                                     )
                                 }
-                            },
-                            modifier = Modifier.clickable { recipe?.let { onRecipeClick(it) } }
+                            }
                         )
                     }
                 }

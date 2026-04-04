@@ -6,7 +6,8 @@ fun com.ro.macrotracker.model.DailyIngredientLog.toEntity(): com.ro.macrotracker
         date = this.date,
         ingredientId = this.ingredientId,
         recipeId = this.recipeId,
-        amount = this.amount
+        amount = this.amount,
+        mealSessionId = this.mealSessionId
     )
 }
 
@@ -16,6 +17,7 @@ fun com.ro.macrotracker.data.local.entity.DailyIngredientLog.toDomain(): com.ro.
         date = this.date,
         ingredientId = this.ingredientId,
         recipeId = this.recipeId,
-        amount = this.amount
+        amount = this.amount,
+        mealSessionId = this.mealSessionId
     )
 }

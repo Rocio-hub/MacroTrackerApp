@@ -128,30 +128,26 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     }
 
 
-    fun saveMealToPlanner(
-        recipeId: Int,
-        items: List<Pair<Ingredient, Double>>,
-        date: Long,
-    ) {
+    fun saveMealToPlanner(recipeId: Int, items: List<Pair<Ingredient, Double>>, date: Long) {
         viewModelScope.launch {
             val normalizedDate = getStartOfDay(date)
-
+            val sessionId = System.currentTimeMillis()
             val logs = items.map { (ingredient, amount) ->
-                DailyIngredientLog(
+                com.ro.macrotracker.model.DailyIngredientLog(
                     date = normalizedDate,
                     ingredientId = ingredient.id,
+                    recipeId = recipeId,
                     amount = amount,
-                    recipeId = recipeId
+                    mealSessionId = sessionId
                 )
             }
             repository.insertDailyLogs(logs)
         }
     }
 
-    fun deleteMeal(recipeId: Int) {
+    fun deleteMealBySession(sessionId: Long) {
         viewModelScope.launch {
-            val today = getStartOfDay(System.currentTimeMillis())
-            repository.deleteMealFromPlanner(recipeId, today)
+            repository.deleteMealFromPlanner(sessionId)
         }
     }
 }

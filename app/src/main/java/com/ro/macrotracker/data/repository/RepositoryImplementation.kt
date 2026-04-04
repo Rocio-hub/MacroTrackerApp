@@ -89,8 +89,9 @@ class RepositoryImplementation(
         println("DEBUG: Insertados ${entities.size} registros en la DB")
     }
 
-    override suspend fun deleteMealFromPlanner(recipeId: Int, date: Long) {
-        dailyIngredientLogDao.deleteLogsForRecipe(recipeId, date)    }
+    override suspend fun deleteMealFromPlanner(sessionId: Long) {
+        dailyIngredientLogDao.deleteLogsBySession(sessionId)
+    }
 
     override fun getDailyLogs(date: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
         return dailyIngredientLogDao.getLogsByDate(date).map { entities ->

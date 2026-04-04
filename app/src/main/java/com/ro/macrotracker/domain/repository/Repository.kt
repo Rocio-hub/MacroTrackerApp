@@ -27,5 +27,5 @@ interface Repository {
 
     fun getDailyLogs(date: Long): Flow<List<DailyIngredientLog>>
     suspend fun insertDailyLogs(logs: List<DailyIngredientLog>)
-    suspend fun deleteMealFromPlanner(recipeId: Int, date: Long)
+    suspend fun deleteMealFromPlanner(sessionId: Long)
 }

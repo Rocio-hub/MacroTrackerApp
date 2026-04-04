@@ -9,5 +9,6 @@ data class DailyIngredientLog (
     val date: Long,
     val ingredientId: Int,
     val amount: Double,
-    val recipeId: Int
+    val recipeId: Int,
+    val mealSessionId: Long
 )

@@ -36,7 +36,7 @@ fun calculateRecipeNutrition(
 
     val input = recipeIngredients.mapNotNull { ri ->
         val ingredient = ingredients.find { it.id == ri.ingredientId }
-        ingredient?.let { it to ri.quantityInGrams }
+        ingredient?.let { it to ri.amount }
     }
 
     return calculateNutrition(input)

@@ -26,7 +26,7 @@ fun RecipeDetailScreen(
 
     val nutritionInput = recipeIngredients.mapNotNull { ri ->
         val ingredient = ingredients.find { it.id == ri.ingredientId }
-        ingredient?.let { it to ri.quantityInGrams }
+        ingredient?.let { it to ri.amount }
     }
 
     val nutrition = calculateNutrition(nutritionInput)
@@ -64,7 +64,7 @@ fun RecipeDetailScreen(
                     Text("${ingredient?.name ?: "Unknown"}")
 
                     Text(
-                        text = "${ri.quantityInGrams.format()} ${ingredient?.unit ?: "g"}",
+                        text = "${ri.amount.format()} ${ingredient?.unit ?: "g"}",
                         style = MaterialTheme.typography.bodySmall
                     )
 
@@ -73,7 +73,7 @@ fun RecipeDetailScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         Button(onClick = {
                             editingItem = ri
-                            newGrams = ri.quantityInGrams.toString()
+                            newGrams = ri.amount.toString()
                         }) { Text("Edit") }
 
                         Button(onClick = {
@@ -93,9 +93,9 @@ fun RecipeDetailScreen(
 
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             Button(onClick = {
-                                val updatedGrams = newGrams.toDoubleOrNull() ?: ri.quantityInGrams
+                                val updatedGrams = newGrams.toDoubleOrNull() ?: ri.amount
                                 scope.launch {
-                                    repository.updateRecipeIngredient(ri.copy(quantityInGrams = updatedGrams))
+                                    repository.updateRecipeIngredient(ri.copy(amount = updatedGrams))
                                     editingItem = null
                                 }
                             }) { Text("Save") }
@@ -120,7 +120,7 @@ fun RecipeDetailScreen(
                                 id = 0,
                                 recipeId = recipe.id,
                                 ingredientId = ingredientId,
-                                quantityInGrams = grams
+                                amount = grams
                             )
                         )
                         showAdd = false

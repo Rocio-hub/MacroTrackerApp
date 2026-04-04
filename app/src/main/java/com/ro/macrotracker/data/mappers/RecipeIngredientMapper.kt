@@ -8,7 +8,7 @@ fun RecipeIngredientEntity.toDomain(): RecipeIngredient {
         id = id,
         recipeId = recipeId,
         ingredientId = ingredientId,
-        quantityInGrams = quantityInGrams
+        amount = amount
     )
 }
 
@@ -17,6 +17,6 @@ fun RecipeIngredient.toEntity(): RecipeIngredientEntity {
         id = id,
         recipeId = recipeId,
         ingredientId = ingredientId,
-        quantityInGrams = quantityInGrams
+        amount = amount
     )
 }

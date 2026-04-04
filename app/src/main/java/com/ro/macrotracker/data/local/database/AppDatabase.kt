@@ -30,9 +30,11 @@ abstract class AppDatabase : RoomDatabase() {
             return INSTANCE ?: synchronized(this) {
                 val instance = androidx.room.Room.databaseBuilder(
                     context.applicationContext,
-                    com.ro.macrotracker.data.local.database.AppDatabase::class.java,
+                    AppDatabase::class.java,
                     "macro-db"
-                ).build()
+                )
+                    .fallbackToDestructiveMigration()
+                    .build()
                 INSTANCE = instance
                 instance
             }

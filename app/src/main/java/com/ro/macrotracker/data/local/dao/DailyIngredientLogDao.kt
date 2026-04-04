@@ -19,6 +19,6 @@ interface DailyIngredientLogDao {
     @Delete
     suspend fun deleteLog(log: DailyIngredientLog)
 
-    @Query("DELETE FROM daily_ingredient_log WHERE date = :date AND recipeId = :recipeId")
-    suspend fun deleteRecipeFromDay(date: Long, recipeId: String)
+    @Query("DELETE FROM daily_ingredient_log WHERE recipeId = :recipeId AND date = :date")
+    suspend fun deleteLogsForRecipe(recipeId: Int, date: Long)
 }

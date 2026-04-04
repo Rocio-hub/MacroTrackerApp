@@ -349,10 +349,6 @@ class MainActivity : ComponentActivity() {
                                 val dailyLogs by mainViewModel.dailyLogs.collectAsState()
                                 val recipeIngredientsMap = remember(allRI) { allRI.groupBy { it.recipeId } }
 
-                                LaunchedEffect(dailyLogs) {
-                                    println("DEBUG UI: Logs recibidos en el Planner: ${dailyLogs.size}")
-                                }
-
                                 DailyPlannerScreen(
                                     recipes = recipes,
                                     ingredients = ingredients,
@@ -360,7 +356,8 @@ class MainActivity : ComponentActivity() {
                                     dailyLogs = dailyLogs,
                                     onRecipeClick = { recipe ->
                                         mainViewModel.navigateTo(Screen.ADJUST_MEAL, recipe = recipe)
-                                    }
+                                    },
+                                    mainViewModel = mainViewModel
                                 )
                             }
                             Screen.ADJUST_MEAL -> {

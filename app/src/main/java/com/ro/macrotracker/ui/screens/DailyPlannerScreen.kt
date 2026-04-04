@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
@@ -23,9 +24,12 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ro.macrotracker.model.Ingredient
@@ -41,7 +45,8 @@ fun DailyPlannerScreen(
     ingredients: List<Ingredient>,
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
     dailyLogs: List<com.ro.macrotracker.model.DailyIngredientLog>,
-    onRecipeClick: (Recipe) -> Unit
+    onRecipeClick: (Recipe) -> Unit,
+    mainViewModel: com.ro.macrotracker.ui.MainViewModel
 ) {
     val context = LocalContext.current
     val viewModel: DailyPlannerViewModel = viewModel()
@@ -79,12 +84,58 @@ fun DailyPlannerScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
 
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var recipeToDelete by remember { mutableStateOf<Recipe?>(null) }
+
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+        if (showDeleteDialog && recipeToDelete != null) {
+            AlertDialog(
+                onDismissRequest = {
+                    showDeleteDialog = false
+                    recipeToDelete = null
+                },
+                title = { Text("Confirm Deletion") },
+                text = {
+                    Text(
+                        text = buildAnnotatedString {
+                            append("Are you sure you want to remove ")
+                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
+                                append("${recipeToDelete?.name}")
+                            }
+                            append(" from your planner?")
+                        }
+                    )
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            recipeToDelete?.let { recipe ->
+                                mainViewModel.deleteMeal(recipe.id)
+                            }
+                            showDeleteDialog = false
+                            recipeToDelete = null
+                        },
+                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Delete")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showDeleteDialog = false
+                        recipeToDelete = null
+                    }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
+
         OutlinedTextField(
             value = targetCalories,
             onValueChange = {
@@ -156,7 +207,20 @@ fun DailyPlannerScreen(
                         ListItem(
                             headlineContent = { Text(recipe?.name ?: "Unknown", fontWeight = FontWeight.Bold) },
                             supportingContent = { Text("${mealCals.format()} kcal") },
-                            trailingContent = { Icon(Icons.Default.Info, null) },
+                            trailingContent = {
+                                IconButton(onClick = {
+                                    val selectedRecipe = recipes.find { it.id == recipeId }
+
+                                    recipeToDelete = selectedRecipe
+                                    showDeleteDialog = true
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            },
                             modifier = Modifier.clickable { recipe?.let { onRecipeClick(it) } }
                         )
                     }

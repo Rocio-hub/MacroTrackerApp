@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ro.macrotracker.Screen
+import com.ro.macrotracker.data.local.dao.DailyIngredientLogDao
 import com.ro.macrotracker.model.DailyIngredientLog
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.repository.Repository
@@ -144,6 +145,13 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
                 )
             }
             repository.insertDailyLogs(logs)
+        }
+    }
+
+    fun deleteMeal(recipeId: Int) {
+        viewModelScope.launch {
+            val today = getStartOfDay(System.currentTimeMillis())
+            repository.deleteMealFromPlanner(recipeId, today)
         }
     }
 }

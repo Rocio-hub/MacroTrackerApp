@@ -1,22 +1,36 @@
 package com.ro.macrotracker.ui.screens
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddAPhoto
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.model.Recipe
@@ -26,48 +40,130 @@ import com.ro.macrotracker.utils.format
 @Composable
 fun AddRecipeScreen(
     allIngredients: List<Ingredient>,
-    onSave: (String, List<Pair<Ingredient, Double>>) -> Unit,
+    onSave: (String, String?, List<Pair<Ingredient, Double>>) -> Unit,
     onCancel: () -> Unit
 ) {
     var recipeName by remember { mutableStateOf("") }
-    // Usamos una lista mutable de Compose para que detecte cambios internos
     val selectedItems = remember { mutableStateListOf<Pair<Ingredient, Double>>() }
     var showDialog by remember { mutableStateOf(false) }
 
     val focusManager = LocalFocusManager.current
 
-    // Cálculo de macros: importante usar .toList() para que recompose al cambiar la lista
     val nutrition = remember(selectedItems.toList()) {
-        val cals = selectedItems.sumOf { (ing, amount) -> (ing.caloriesPer100 * amount) / 100 }
-        val prot = selectedItems.sumOf { (ing, amount) -> (ing.proteinPer100 * amount) / 100 }
-        Pair(cals, prot)
+        val calories = selectedItems.sumOf { (ing, amount) -> (ing.caloriesPer100 * amount) / 100 }
+        val protein = selectedItems.sumOf { (ing, amount) -> (ing.proteinPer100 * amount) / 100 }
+        val carbs = selectedItems.sumOf { (ing, amount) -> (ing.carbsPer100 * amount) / 100 }
+        val fat = selectedItems.sumOf { (ing, amount) -> (ing.fatPer100 * amount) / 100 }
+
+        object {
+            val kcal = calories
+            val p = protein
+            val c = carbs
+            val f = fat
+        }
     }
+
+    var selectedImageUri by remember { mutableStateOf<String?>(null) }
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri ->
+            selectedImageUri = uri?.toString()
+        }
+    )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp)
             .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
+            .verticalScroll(rememberScrollState())
     ) {
-        OutlinedTextField(
-            value = recipeName,
-            onValueChange = { recipeName = it },
-            label = { Text("Recipe Name") },
-            modifier = Modifier.fillMaxWidth(),
-            singleLine = true
-        )
-
-        // Panel de Macros
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                "Total: ${nutrition.first.format()} kcal | Protein: ${nutrition.second.format()}g",
-                modifier = Modifier.padding(16.dp),
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.bodyLarge
+            Box(
+                modifier = Modifier
+                    .size(72.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                    .clickable {
+                        photoPickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                if (selectedImageUri != null) {
+                    AsyncImage(
+                        model = selectedImageUri,
+                        contentDescription = "Recipe Photo",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.AddAPhoto,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = recipeName,
+                onValueChange = { recipeName = it },
+                label = { Text("Name") },
+                modifier = Modifier.weight(1f),
+                singleLine = true,
+                shape = MaterialTheme.shapes.medium
             )
+        }
+
+        HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
+
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+            ),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Row(
+                modifier = Modifier
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Total", style = MaterialTheme.typography.labelSmall)
+                    Text("${nutrition.kcal.format()} kcal", fontWeight = FontWeight.ExtraBold)
+                }
+
+                VerticalDivider(modifier = Modifier.height(24.dp), thickness = 1.dp)
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("P", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)
+                    Text("${nutrition.p.format()} g", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("C", color = Color(0xFF42A5F5), fontWeight = FontWeight.Bold)
+                    Text("${nutrition.c.format()} g", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("F", color = Color(0xFFFFB300), fontWeight = FontWeight.Bold)
+                    Text("${nutrition.f.format()} g", style = MaterialTheme.typography.bodyMedium)
+                }
+            }
         }
 
         Row(
@@ -95,7 +191,6 @@ fun AddRecipeScreen(
                     ) {
                         Text(ing.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
 
-                        // Input de gramos
                         OutlinedTextField(
                             value = if (amount == 0.0) "" else amount.toString(),
                             onValueChange = { newValue ->
@@ -103,7 +198,6 @@ fun AddRecipeScreen(
                                 val filteredValue = newValue.filter { it.isDigit() || it == '.' }
                                 val newAmount = filteredValue.toDoubleOrNull() ?: 0.0
 
-                                // ACTUALIZACIÓN CRÍTICA: Reemplazamos el objeto en la lista
                                 val index = selectedItems.indexOf(item)
                                 if (index != -1) {
                                     selectedItems[index] = ing to newAmount
@@ -123,17 +217,29 @@ fun AddRecipeScreen(
             }
         }
 
-        // Botonera inferior
         Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp, bottom = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            OutlinedButton(
+                onClick = onCancel,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Cancel")
+            }
             Button(
-                onClick = { onSave(recipeName, selectedItems.toList()) },
+                onClick = { onSave(recipeName, selectedImageUri, selectedItems.toList()) },
                 modifier = Modifier.weight(1f),
-                enabled = recipeName.isNotBlank() && selectedItems.isNotEmpty()
-            ) { Text("Save Recipe") }
+                enabled = recipeName.isNotBlank() && selectedItems.isNotEmpty(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            ) {
+                Text("Save")
+            }
         }
     }
 

@@ -8,5 +8,6 @@ data class Recipe(
     @PrimaryKey(autoGenerate = true)
     val id: Int = 0,
     val name: String,
-    val isDeleted: Boolean = false
+    val isDeleted: Boolean = false,
+    val imageUri: String? = null
 )

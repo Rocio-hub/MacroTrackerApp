@@ -308,26 +308,17 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             Screen.ADD_RECIPE -> {
-                                val modelIngredients = ingredients.map { entity ->
-                                    com.ro.macrotracker.model.Ingredient(
-                                        id = entity.id,
-                                        name = entity.name,
-                                        caloriesPer100 = entity.caloriesPer100,
-                                        proteinPer100 = entity.proteinPer100,
-                                        carbsPer100 = entity.carbsPer100,
-                                        fatPer100 = entity.fatPer100,
-                                        fiberPer100 = entity.fiberPer100,
-                                        unit = entity.unit
-                                    )
-                                }
-
                                 AddRecipeScreen(
-                                    allIngredients = modelIngredients,
-                                    onSave = { name, selectedItems ->
-                                        mainViewModel.saveFullRecipe(name, selectedItems)
+                                    allIngredients = ingredients,
+                                    onSave = { name, imageUri, selectedIngredientsList ->
+                                        mainViewModel.saveFullRecipe(
+                                            name = name,
+                                            imageUri = imageUri,
+                                            items = selectedIngredientsList
+                                        )
                                         mainViewModel.navigateTo(Screen.RECIPES)
                                     },
-                                    onCancel = { mainViewModel.goBack() }
+                                    onCancel = { mainViewModel.navigateTo(Screen.RECIPES) }
                                 )
                             }
                             Screen.ADD_INGREDIENT -> {
@@ -380,7 +371,8 @@ class MainActivity : ComponentActivity() {
                                                     carbsPer100 = entity.carbsPer100,
                                                     fatPer100 = entity.fatPer100,
                                                     fiberPer100 = entity.fiberPer100,
-                                                    unit = entity.unit
+                                                    unit = entity.unit,
+                                                    imageUri = entity.imageUri
                                                 )
                                                 modelIng to ri.amount
                                             } else null

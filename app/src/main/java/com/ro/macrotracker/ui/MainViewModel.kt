@@ -87,16 +87,15 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         }
     }
 
-    fun saveFullRecipe(name: String, items: List<Pair<Ingredient, Double>>) {
+    fun saveFullRecipe(name: String, imageUri: String?, items: List<Pair<Ingredient, Double>>) {
         viewModelScope.launch {
-            val newRecipeId = repository.insertRecipe(
-                Recipe(id = 0, name = name)
-            ).toInt()
+            val recipe = Recipe(name = name, imageUri = imageUri)
+            val recipeId = repository.insertRecipe(recipe).toInt() // 👈 Necesitas que insertRecipe devuelva Long
 
             val modelsToSave = items.map { (modelIng, amount) ->
                 RecipeIngredient(
                     id = 0,
-                    recipeId = newRecipeId,
+                    recipeId = recipeId,
                     ingredientId = modelIng.id,
                     amount = amount
                 )

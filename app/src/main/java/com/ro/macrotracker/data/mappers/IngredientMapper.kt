@@ -12,7 +12,8 @@ fun IngredientEntity.toDomain(): Ingredient {
         carbsPer100 = carbsPer100,
         fatPer100 = fatPer100,
         fiberPer100 = fiberPer100,
-        unit = unit
+        unit = unit,
+        imageUri = imageUri
     )
 }
 
@@ -25,6 +26,7 @@ fun Ingredient.toIngredientEntity(): IngredientEntity {
         carbsPer100 = carbsPer100,
         fatPer100 = fatPer100,
         fiberPer100 = fiberPer100,
-        unit = unit
+        unit = unit,
+        imageUri = imageUri
     )
 }

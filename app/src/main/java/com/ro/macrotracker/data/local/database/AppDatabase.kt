@@ -15,7 +15,7 @@ import com.ro.macrotracker.data.local.entity.RecipeIngredient
         Recipe::class,
         RecipeIngredient::class
     ],
-    version = 1
+    version = 3
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun ingredientDao(): IngredientDao

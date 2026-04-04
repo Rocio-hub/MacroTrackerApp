@@ -3,9 +3,16 @@ package com.ro.macrotracker.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
 import com.ro.macrotracker.model.Recipe
@@ -28,106 +35,107 @@ fun RecipeDetailScreen(
         val ingredient = ingredients.find { it.id == ri.ingredientId }
         ingredient?.let { it to ri.amount }
     }
-
     val nutrition = calculateNutrition(nutritionInput)
 
     var showAdd by remember { mutableStateOf(false) }
-    var editingItem by remember { mutableStateOf<RecipeIngredient?>(null) }
-    var newGrams by remember { mutableStateOf("") }
-
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text(text = recipe.name, style = MaterialTheme.typography.headlineSmall)
+    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+        Text(text = recipe.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
 
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(text = "Calories: ${nutrition.calories.format()}")
-        Text(text = "Protein: ${nutrition.protein.format()}g")
-        Text(text = "Carbs: ${nutrition.carbs.format()}g")
-        Text(text = "Fat: ${nutrition.fat.format()}g")
-        Text(text = "Fiber: ${nutrition.fiber.format()}g")
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Button(onClick = { showAdd = true }) {
-            Text("Add Ingredient")
+        Card(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("Total Nutrition", style = MaterialTheme.typography.titleSmall)
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("${nutrition.calories.format()} kcal")
+                    Text("P: ${nutrition.protein.format()}g")
+                    Text("C: ${nutrition.carbs.format()}g")
+                    Text("F: ${nutrition.fat.format()}g")
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Ingredients", style = MaterialTheme.typography.titleMedium)
+            Button(onClick = { showAdd = true }) {
+                Icon(Icons.Default.Add, null)
+                Text("Add")
+            }
+        }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
+        LazyColumn(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
             items(recipeIngredients) { ri ->
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 
-                Column(modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                    Text("${ingredient?.name ?: "Unknown"}")
+                Card(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(ingredient?.name ?: "Unknown", fontWeight = FontWeight.SemiBold)
+                        }
 
-                    Text(
-                        text = "${ri.amount.format()} ${ingredient?.unit ?: "g"}",
-                        style = MaterialTheme.typography.bodySmall
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Button(onClick = {
-                            editingItem = ri
-                            newGrams = ri.amount.toString()
-                        }) { Text("Edit") }
-
-                        Button(onClick = {
-                            scope.launch {
-                                repository.deleteRecipeIngredient(ri.id)
-                            }
-                        }) { Text("Delete") }
-                    }
-
-                    if (editingItem?.id == ri.id) {
-                        Spacer(modifier = Modifier.height(8.dp))
                         OutlinedTextField(
-                            value = newGrams,
-                            onValueChange = { newGrams = it },
-                            label = { Text("Quantity (${ingredient?.unit ?: "g"})") }
-                        )
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Button(onClick = {
-                                val updatedGrams = newGrams.toDoubleOrNull() ?: ri.amount
+                            value = ri.amount.toString(),
+                            onValueChange = { newValue ->
+                                val updatedGrams = newValue.toDoubleOrNull() ?: 0.0
                                 scope.launch {
                                     repository.updateRecipeIngredient(ri.copy(amount = updatedGrams))
-                                    editingItem = null
                                 }
-                            }) { Text("Save") }
+                            },
+                            modifier = Modifier.width(90.dp),
+                            suffix = { Text(ingredient?.unit ?: "g") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
 
-                            Button(onClick = { editingItem = null }) { Text("Cancel") }
+                        IconButton(onClick = {
+                            scope.launch { repository.deleteRecipeIngredient(ri.id) }
+                        }) {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                         }
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onBack) { Text("Back") }
-
-        if (showAdd) {
-            AddIngredientToRecipeDialog(
-                ingredients = ingredients,
-                onAdd = { ingredientId, grams ->
-                    scope.launch {
-                        repository.insertRecipeIngredient(
-                            RecipeIngredient(
-                                id = 0,
-                                recipeId = recipe.id,
-                                ingredientId = ingredientId,
-                                amount = grams
-                            )
-                        )
-                        showAdd = false
-                    }
-                },
-                onDismiss = { showAdd = false }
-            )
+        Button(
+            onClick = onBack,
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
+        ) {
+            Text("Back to Recipes")
         }
+    }
+
+    if (showAdd) {
+        AddIngredientToRecipeDialog(
+            ingredients = ingredients,
+            onIngredientsSelected = { selectedIngredients ->
+                scope.launch {
+                    val newItems = selectedIngredients.map { ing ->
+                        RecipeIngredient(
+                            id = 0,
+                            recipeId = recipe.id,
+                            ingredientId = ing.id,
+                            amount = 100.0
+                        )
+                    }
+                    repository.insertRecipeIngredients(newItems)
+                    showAdd = false
+                }
+            },
+            onDismiss = { showAdd = false }
+        )
     }
 }

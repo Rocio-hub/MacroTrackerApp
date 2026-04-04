@@ -303,11 +303,27 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             Screen.ADD_RECIPE -> {
-                                AddRecipeScreen(onSave = { recipeEntity ->
-                                    val recipeModel = recipeEntity.toDomain()
-                                    mainViewModel.saveRecipe(recipeModel)
-                                    mainViewModel.navigateTo(Screen.RECIPES)
-                                })
+                                val modelIngredients = ingredients.map { entity ->
+                                    com.ro.macrotracker.model.Ingredient(
+                                        id = entity.id,
+                                        name = entity.name,
+                                        caloriesPer100g = entity.caloriesPer100g,
+                                        proteinPer100g = entity.proteinPer100g,
+                                        carbsPer100g = entity.carbsPer100g,
+                                        fatPer100g = entity.fatPer100g,
+                                        fiberPer100g = entity.fiberPer100g,
+                                        unit = entity.unit
+                                    )
+                                }
+
+                                AddRecipeScreen(
+                                    allIngredients = modelIngredients,
+                                    onSave = { name, selectedItems ->
+                                        mainViewModel.saveFullRecipe(name, selectedItems)
+                                        mainViewModel.navigateTo(Screen.RECIPES)
+                                    },
+                                    onCancel = { mainViewModel.goBack() }
+                                )
                             }
                             Screen.ADD_INGREDIENT -> {
                                 AddIngredientScreen(

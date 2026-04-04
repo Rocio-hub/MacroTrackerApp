@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ro.macrotracker.Screen
+import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
@@ -77,9 +78,22 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         }
     }
 
-    fun saveRecipe(recipe: Recipe) {
+    fun saveFullRecipe(name: String, items: List<Pair<Ingredient, Double>>) {
         viewModelScope.launch {
-            repository.insertRecipe(recipe)
+            val newRecipeId = repository.insertRecipe(
+                Recipe(id = 0, name = name)
+            ).toInt()
+
+            val modelsToSave = items.map { (modelIng, amount) ->
+                RecipeIngredient(
+                    id = 0,
+                    recipeId = newRecipeId,
+                    ingredientId = modelIng.id,
+                    amount = amount
+                )
+            }
+
+            repository.insertRecipeIngredients(modelsToSave)
         }
     }
 
@@ -97,4 +111,6 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     suspend fun getUsageCount(ingredientId: Int): Int {
         return repository.getUsageCountForIngredient(ingredientId)
     }
+
+
 }

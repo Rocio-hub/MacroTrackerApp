@@ -2,6 +2,7 @@ package com.ro.macrotracker.ui.components
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -12,72 +13,67 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ro.macrotracker.model.Ingredient
 import androidx.compose.foundation.lazy.items
+import androidx.compose.ui.Alignment
 
 @Composable
 fun AddIngredientToRecipeDialog(
     ingredients: List<Ingredient>,
-    onAdd: (Int, Double) -> Unit,
+    onIngredientsSelected: (List<Ingredient>) -> Unit,
     onDismiss: () -> Unit
 ) {
 
-    var selectedIngredientId by remember { mutableStateOf<Int?>(null) }
-    var grams by remember { mutableStateOf("") }
+    val selectedIds = remember { mutableStateListOf<Int>() }
+    var searchQuery by remember { mutableStateOf("") }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        title = { Text("Select Ingredients") },
+        text = {
+            Column(modifier = Modifier.heightIn(max = 400.dp)) {
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    placeholder = { Text("Search...") },
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    singleLine = true
+                )
+
+                LazyColumn {
+                    val filtered = ingredients.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                    items(filtered) { ingredient ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (selectedIds.contains(ingredient.id)) selectedIds.remove(ingredient.id)
+                                    else selectedIds.add(ingredient.id)
+                                }
+                                .padding(vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = selectedIds.contains(ingredient.id),
+                                onCheckedChange = null
+                            )
+                            Text(ingredient.name, modifier = Modifier.padding(start = 8.dp))
+                        }
+                    }
+                }
+            }
+        },
         confirmButton = {
             Button(
                 onClick = {
-                    onAdd(selectedIngredientId!!, grams.toDoubleOrNull() ?: 0.0)
+                    val ingredientsToAdd = ingredients.filter { selectedIds.contains(it.id) }
+                    onIngredientsSelected(ingredientsToAdd)
                 },
-                enabled = selectedIngredientId != null && (grams.toDoubleOrNull() ?: 0.0) > 0
+                enabled = selectedIds.isNotEmpty()
             ) {
-                Text("Add")
+                Text("Add Selected (${selectedIds.size})")
             }
         },
         dismissButton = {
-            Button(onClick = onDismiss) {
-                Text("Cancel")
-            }
-        },
-        text = {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 300.dp)
-            ) {
-
-                LazyColumn {
-                    items(ingredients) {
-                        val isSelected = selectedIngredientId == it.id
-
-                        Text(
-                            text = it.name,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { selectedIngredientId = it.id }
-                                .padding(8.dp),
-                            color = if (isSelected)
-                                MaterialTheme.colorScheme.primary
-                            else
-                                MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                }
-
-                OutlinedTextField(
-                    value = grams,
-                    onValueChange = { grams = it },
-                    label = { Text("Grams") }
-                )
-
-                if (grams.isNotBlank() && grams.toDoubleOrNull() == null) {
-                    Text(
-                        text = "Enter a valid number",
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-            }
+            TextButton(onClick = onDismiss) { Text("Cancel") }
         }
     )
 }

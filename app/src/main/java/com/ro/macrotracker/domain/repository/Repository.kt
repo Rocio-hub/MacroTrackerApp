@@ -20,6 +20,7 @@ interface Repository {
 
     fun getAllRecipeIngredients(): Flow<List<RecipeIngredient>>
     suspend fun insertRecipeIngredient(recipeIngredient: RecipeIngredient)
+    suspend fun insertRecipeIngredients(ingredients: List<RecipeIngredient>)
     suspend fun updateRecipeIngredient(recipeIngredient: RecipeIngredient)
     suspend fun deleteRecipeIngredient(id: Int)
 }

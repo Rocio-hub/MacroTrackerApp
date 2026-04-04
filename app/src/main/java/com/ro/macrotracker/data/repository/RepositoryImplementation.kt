@@ -68,6 +68,11 @@ class RepositoryImplementation(
         recipeIngredientDao.insertRecipeIngredient(recipeIngredient.toEntity())
     }
 
+    override suspend fun insertRecipeIngredients(ingredients: List<RecipeIngredient>) {
+        val entities = ingredients.map { it.toEntity() }
+        recipeIngredientDao.insertAll(entities)
+    }
+
     override suspend fun updateRecipeIngredient(recipeIngredient: RecipeIngredient) {
         recipeIngredientDao.updateRecipeIngredient(recipeIngredient.toEntity())
     }

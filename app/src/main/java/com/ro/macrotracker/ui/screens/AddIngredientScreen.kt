@@ -73,10 +73,17 @@ fun AddIngredientScreen(
         }
     )
 
+    val focusManager = LocalFocusManager.current
+
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(horizontal = 16.dp, vertical = 20.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -241,6 +248,13 @@ fun AddIngredientScreen(
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Next
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color(0xFF50C878).copy(alpha = 0.2f),
+                unfocusedContainerColor = Color(0xFF50C878).copy(alpha = 0.1f),
+                focusedBorderColor = Color(0xFF50C878),
+                focusedLabelColor = Color(0xFF50C878),
+                cursorColor = Color(0xFF50C878)
             ),
             modifier = Modifier.fillMaxWidth(),
         )

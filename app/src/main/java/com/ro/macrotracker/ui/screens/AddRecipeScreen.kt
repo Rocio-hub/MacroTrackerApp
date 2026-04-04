@@ -54,12 +54,14 @@ fun AddRecipeScreen(
         val protein = selectedItems.sumOf { (ing, amount) -> (ing.proteinPer100 * amount) / 100 }
         val carbs = selectedItems.sumOf { (ing, amount) -> (ing.carbsPer100 * amount) / 100 }
         val fat = selectedItems.sumOf { (ing, amount) -> (ing.fatPer100 * amount) / 100 }
+        val fiber = selectedItems.sumOf { (ing, amount) -> (ing.fiberPer100 * amount) / 100 }
 
         object {
             val kcal = calories
             val p = protein
             val c = carbs
             val f = fat
+            val fi = fiber
         }
     }
 
@@ -162,6 +164,11 @@ fun AddRecipeScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("F", color = Color(0xFFFFB300), fontWeight = FontWeight.Bold)
                     Text("${nutrition.f.format()} g", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Fi", color = Color(0xFF50C878), fontWeight = FontWeight.Bold)
+                    Text("${nutrition.fi.format()} g", style = MaterialTheme.typography.bodyMedium)
                 }
             }
         }

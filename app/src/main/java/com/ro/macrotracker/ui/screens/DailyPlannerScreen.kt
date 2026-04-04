@@ -1,6 +1,7 @@
 package com.ro.macrotracker.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -18,6 +19,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -112,7 +114,7 @@ fun DailyPlannerScreen(
             calendar.add(Calendar.DAY_OF_YEAR, -1)
             val yesterday = calendar.timeInMillis
 
-            calendar.add(Calendar.DAY_OF_YEAR, +1)
+            calendar.add(Calendar.DAY_OF_YEAR, +2)
             val tomorrow = calendar.timeInMillis
 
             when {
@@ -178,7 +180,16 @@ fun DailyPlannerScreen(
         val fmt = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
         return fmt.format(Date(date1)) == fmt.format(Date(date2))
     }
-    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                })
+            }) {
 
         DateSelector(
             selectedDate = selectedDate,
@@ -293,6 +304,7 @@ fun DailyPlannerScreen(
                     MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
                     MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                     MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
+                    MacroSummaryItem("Fiber", totalNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
                 }
             }
         }
@@ -367,9 +379,10 @@ fun DailyPlannerScreen(
                                 .padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
-                            MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
-                            MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
+                            MacroSummaryItem("Protein", mealNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
+                            MacroSummaryItem("Carbs", mealNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
+                            MacroSummaryItem("Fat", mealNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
+                            MacroSummaryItem("Fiber", mealNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
                         }
                     }
                 }
@@ -393,6 +406,7 @@ fun DailyPlannerScreen(
                                 MacroBadge("P", nutrition.protein, Color(0xFFFFEBEE))
                                 MacroBadge("C", nutrition.carbs, Color(0xFFE3F2FD))
                                 MacroBadge("F", nutrition.fat, Color(0xFFFFF8E1))
+                                MacroBadge("Fi", nutrition.fiber, Color(0xFF50C878))
                             }
                         }
                         Text("${nutrition.calories.format()} kcal", fontWeight = FontWeight.Bold)

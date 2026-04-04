@@ -5,13 +5,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ro.macrotracker.Screen
-import com.ro.macrotracker.data.local.dao.DailyIngredientLogDao
-import com.ro.macrotracker.model.DailyIngredientLog
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
-import com.ro.macrotracker.utils.getStartOfDay
+import com.ro.macrotracker.utils.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -45,16 +43,12 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    private val _selectedDate = MutableStateFlow(System.currentTimeMillis()) // Por ahora hoy
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis())
     val selectedDate = _selectedDate.asStateFlow()
 
-    val dailyLogs: StateFlow<List<com.ro.macrotracker.model.DailyIngredientLog>> = repository
-        .getDailyLogs(getStartOfDay(System.currentTimeMillis()))
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
-        )
+    val dailyLogs = _selectedDate.flatMapLatest { date ->
+        repository.getLogsForDate(getStartOfDay(date), getEndOfDay(date))
+    }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
@@ -149,5 +143,9 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         viewModelScope.launch {
             repository.deleteMealFromPlanner(sessionId)
         }
+    }
+
+    fun onDateChange(newTimestamp: Long) {
+        _selectedDate.value = newTimestamp
     }
 }

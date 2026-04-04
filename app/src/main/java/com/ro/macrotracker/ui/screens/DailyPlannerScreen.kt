@@ -1,19 +1,15 @@
 package com.ro.macrotracker.ui.screens
 
-import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -38,6 +34,9 @@ import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.calculateRecipeNutrition
 import com.ro.macrotracker.ui.viewmodel.DailyPlannerViewModel
 import com.ro.macrotracker.utils.format
+import java.text.SimpleDateFormat
+import java.util.*
+import com.ro.macrotracker.utils.*
 
 @Composable
 fun DailyPlannerScreen(
@@ -89,12 +88,69 @@ fun DailyPlannerScreen(
 
     var sessionIdToDelete by remember { mutableStateOf<Long?>(null) }
 
+    val selectedDate by mainViewModel.selectedDate.collectAsState()
+
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
+    @Composable
+    fun DateSelector(
+        selectedDate: Long,
+        onDateChange: (Long) -> Unit
+    ) {
+        val sdf = SimpleDateFormat("EEE, d MMM", Locale.getDefault())
+        val dateText = remember(selectedDate) {
+            val calendar = Calendar.getInstance()
+            val today = calendar.timeInMillis
+
+            calendar.add(Calendar.DAY_OF_YEAR, -1)
+            val yesterday = calendar.timeInMillis
+
+            when {
+                isSameDay(selectedDate, today) -> "Today"
+                isSameDay(selectedDate, yesterday) -> "Yesterday"
+                else -> sdf.format(Date(selectedDate))
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = { onDateChange(selectedDate - 24 * 60 * 60 * 1000) }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous Day")
+            }
+
+            Text(
+                text = dateText,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+
+            IconButton(onClick = { onDateChange(selectedDate + 24 * 60 * 60 * 1000) }) {
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next Day")
+            }
+        }
+    }
+
+    fun isSameDay(date1: Long, date2: Long): Boolean {
+        val fmt = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        return fmt.format(Date(date1)) == fmt.format(Date(date2))
+    }
     Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
+
+        DateSelector(
+            selectedDate = selectedDate,
+            onDateChange = { newDate ->
+                mainViewModel.onDateChange(newDate)
+            }
+        )
+
         if (showDeleteDialog && recipeToDelete != null) {
             AlertDialog(
                 onDismissRequest = {
@@ -155,26 +211,52 @@ fun DailyPlannerScreen(
         )
 
         Card(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
-            shape = MaterialTheme.shapes.extraLarge
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 16.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            )
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Column {
-                        Text("Daily Progress", style = MaterialTheme.typography.labelMedium)
-                        Text("${totalNutrition.calories.format()} / ${target.format()} kcal",
-                            style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
+            Column(
+                modifier = Modifier.padding(20.dp)) {
+                Column {
+                    Text("Daily Progress", style = MaterialTheme.typography.labelMedium)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "${totalNutrition.calories.format()} / ${target.format()} kcal",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.ExtraBold
+                        )
                     }
                 }
+
                 LinearProgressIndicator(
                     progress = { if (target > 0) (totalNutrition.calories / target).toFloat().coerceAtMost(1f) else 0f },
-                    modifier = Modifier.fillMaxWidth().height(8.dp).padding(vertical = 8.dp),
-                    strokeCap = StrokeCap.Round
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(30.dp)
+                        .padding(vertical = 12.dp),
+                    strokeCap = StrokeCap.Round,
+                    color = MaterialTheme.colorScheme.primary,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    MacroSummaryItem("Protein", totalNutrition.protein, Color(0xFFEF5350))
-                    MacroSummaryItem("Carbs", totalNutrition.carbs, Color(0xFF42A5F5))
-                    MacroSummaryItem("Fat", totalNutrition.fat, Color(0xFFFFB300))
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
+                    MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
+                    MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
                 }
             }
         }
@@ -197,10 +279,8 @@ fun DailyPlannerScreen(
 
             if (eatenMeals.isNotEmpty()) {
                 item {
-                    Text("Consumed Today",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.secondary
-                    )
+                        val title = if (isSameDay(selectedDate, System.currentTimeMillis())) "Consumed Today" else "Consumed this day"
+                        Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary)
                 }
 
                 items(eatenMeals.keys.toList().sortedDescending()) { sessionId ->
@@ -246,12 +326,14 @@ fun DailyPlannerScreen(
                         )
 
                         Row(
-                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            MacroBadge("P", mealNutrition.protein, Color(0xFFFFEBEE))
-                            MacroBadge("C", mealNutrition.carbs, Color(0xFFE3F2FD))
-                            MacroBadge("F", mealNutrition.fat, Color(0xFFFFF8E1))
+                            MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
+                            MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
+                            MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
                         }
                     }
                 }
@@ -287,12 +369,34 @@ fun DailyPlannerScreen(
 
 @Composable
 fun MacroSummaryItem(label: String, value: Double, color: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(modifier = Modifier.size(16.dp, 4.dp).background(color, MaterialTheme.shapes.extraSmall))
-        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
-        Text("${value.format()}g", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.widthIn(min = 60.dp) // 👈 Da una base sólida al componente
+    ) {
+        Surface(
+            color = color.copy(alpha = 0.2f),
+            shape = MaterialTheme.shapes.extraSmall,
+            modifier = Modifier.padding(bottom = 4.dp)
+        ) {
+            Text(
+                text = label,
+                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color,
+                maxLines = 1
+            )
+        }
+
+        Text(
+            text = "${value.format()} g",
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.ExtraBold,
+            maxLines = 1
+        )
     }
 }
+
 
 @Composable
 fun MacroBadge(label: String, value: Double, color: Color) {

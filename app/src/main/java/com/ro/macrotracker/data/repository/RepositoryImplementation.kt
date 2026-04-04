@@ -14,6 +14,7 @@ import com.ro.macrotracker.model.RecipeIngredient
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import com.ro.macrotracker.data.mappers.toEntity
+import com.ro.macrotracker.model.DailyIngredientLog
 
 class RepositoryImplementation(
     private val ingredientDao: IngredientDao,
@@ -96,6 +97,12 @@ class RepositoryImplementation(
     override fun getDailyLogs(date: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
         return dailyIngredientLogDao.getLogsByDate(date).map { entities ->
             entities.map { it.toDomain() }
+        }
+    }
+
+    override fun getLogsForDate(start: Long, end: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
+        return dailyIngredientLogDao.getLogsForDate(start, end).map { list ->
+            list.map { it.toDomain() }
         }
     }
 }

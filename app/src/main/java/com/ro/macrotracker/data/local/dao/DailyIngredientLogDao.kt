@@ -16,6 +16,9 @@ interface DailyIngredientLogDao {
     @Query("SELECT * FROM daily_ingredient_log WHERE date = :date")
     fun getLogsByDate(date: Long): Flow<List<DailyIngredientLog>>
 
+    @Query("SELECT * FROM daily_ingredient_log WHERE date >= :start AND date <= :end")
+    fun getLogsForDate(start: Long, end: Long): Flow<List<DailyIngredientLog>>
+
     @Delete
     suspend fun deleteLog(log: DailyIngredientLog)
 

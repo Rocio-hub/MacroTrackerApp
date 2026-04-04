@@ -77,6 +77,8 @@ class MainActivity : ComponentActivity() {
             var ingredientToDelete by remember { mutableStateOf<com.ro.macrotracker.model.Ingredient?>(null) }
             val scope = rememberCoroutineScope()
 
+            val selectedDate by mainViewModel.selectedDate.collectAsState()
+
             MacroTrackerTheme {
                 if (showWelcomeDialog) {
                     AlertDialog(
@@ -391,7 +393,7 @@ class MainActivity : ComponentActivity() {
                                             mainViewModel.saveMealToPlanner(
                                                 recipeId = recipeModel.id,
                                                 items = adjustedItems,
-                                                date = System.currentTimeMillis()
+                                                date = selectedDate
                                             )
                                             mainViewModel.navigateTo(Screen.PLANNER)
                                         },

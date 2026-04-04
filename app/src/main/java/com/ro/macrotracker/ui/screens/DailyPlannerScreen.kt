@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -19,7 +20,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -37,6 +41,7 @@ fun DailyPlannerScreen(
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
     onRecipeClick: (Recipe) -> Unit
 ) {
+
     val context = LocalContext.current
     val viewModel: DailyPlannerViewModel = viewModel()
     val selectedRecipes by viewModel.selectedRecipes.collectAsState()
@@ -45,10 +50,18 @@ fun DailyPlannerScreen(
     val target = targetCalories.toDoubleOrNull() ?: 0.0
 
     val searchQuery by viewModel.plannerSearchQuery.collectAsState()
-
     val filteredRecipes = remember(searchQuery, recipes) {
         viewModel.getFilteredRecipes(recipes)
     }
+
+    val totalNutrition = remember(selectedRecipes, recipeIngredientsMap, ingredients) {
+        viewModel.calculateTotalNutrition(recipeIngredientsMap, ingredients)
+    }
+
+    val totalCalories = totalNutrition.calories
+
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(Unit) {
         val prefs = context.getSharedPreferences("planner", 0)
@@ -59,11 +72,6 @@ fun DailyPlannerScreen(
         val prefs = context.getSharedPreferences("planner", 0)
         prefs.edit().putString("targetCalories", targetCalories).apply()
     }
-
-    val totalNutrition = remember(selectedRecipes, recipeIngredientsMap, ingredients) {
-        viewModel.calculateTotalNutrition(recipeIngredientsMap, ingredients)
-    }
-    val totalCalories = totalNutrition.calories
 
     Column(
         modifier = Modifier
@@ -76,23 +84,30 @@ fun DailyPlannerScreen(
             label = { Text("Daily Calories Target") },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
             shape = MaterialTheme.shapes.medium,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Number,
+                imeAction = ImeAction.Done
+            ),
+            keyboardActions = KeyboardActions(
+                onDone = {
+                    keyboardController?.hide()
+                    focusManager.clearFocus()
+                }
+            ),
         )
 
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 16.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)
-            ),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)),
             shape = MaterialTheme.shapes.extraLarge
         ) {
-            Column(modifier = Modifier.padding(20.dp)) {
+           Column(modifier = Modifier.padding(20.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column {
                         Text("Daily Progress", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
@@ -125,7 +140,8 @@ fun DailyPlannerScreen(
 
                 LinearProgressIndicator(
                     progress = { if (target > 0) (totalCalories / target).toFloat().coerceAtMost(1f) else 0f },
-                    modifier = Modifier.fillMaxWidth().height(8.dp),
+
+                   modifier = Modifier.fillMaxWidth().height(8.dp),
                     strokeCap = StrokeCap.Round,
                     color = if (totalCalories > target) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
                     trackColor = MaterialTheme.colorScheme.surfaceVariant
@@ -161,24 +177,12 @@ fun DailyPlannerScreen(
             singleLine = true
         )
 
-        // --- LISTADO USANDO LAS FILTRADAS ---
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            items(filteredRecipes) { recipe -> // Usamos filteredRecipes aquí
-                // ... (el código de la Card de la receta que ya teníamos) ...
-            }
-        }
-
-        Text("Select Recipes", style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 8.dp))
-
         LazyColumn(
             modifier = Modifier.weight(1f),
             contentPadding = PaddingValues(bottom = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(recipes) { recipe ->
+            items(filteredRecipes) { recipe ->
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
                 val nutrition = calculateRecipeNutrition(ris, ingredients)
                 val count = selectedRecipes[recipe] ?: 0
@@ -209,10 +213,7 @@ fun DailyPlannerScreen(
                         }
 
                         if (isSelected) {
-                            HorizontalDivider(
-                                modifier = Modifier.padding(vertical = 12.dp),
-                                color = MaterialTheme.colorScheme.outlineVariant
-                            )
+                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.Center,
@@ -259,13 +260,27 @@ fun MacroSummaryItem(label: String, value: Double, color: Color) {
 
 @Composable
 fun MacroBadge(label: String, value: Double, color: Color) {
-    Surface(color = color, shape = MaterialTheme.shapes.small) {
-        Text(
-            text = "$label: ${value.format()}g",
+    Surface(
+        color = color,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.padding(vertical = 2.dp)
+    ) {
+        Row(
             modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = "${value.format()}g",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }

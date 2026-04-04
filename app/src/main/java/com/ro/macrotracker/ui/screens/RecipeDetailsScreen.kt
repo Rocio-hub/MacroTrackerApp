@@ -56,7 +56,7 @@ fun RecipeDetailScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        LazyColumn {
+        LazyColumn(modifier = Modifier.weight(1f)) {
             items(recipeIngredients) { ri ->
                 val ingredient = ingredients.find { it.id == ri.ingredientId }
 

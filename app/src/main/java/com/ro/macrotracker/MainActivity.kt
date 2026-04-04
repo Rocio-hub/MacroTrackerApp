@@ -6,9 +6,12 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -27,7 +30,12 @@ import com.ro.macrotracker.ui.screens.*
 import com.ro.macrotracker.ui.theme.MacroTrackerTheme
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import com.ro.macrotracker.data.mappers.toDomain
 import kotlinx.coroutines.launch
 
@@ -48,12 +56,16 @@ class MainActivity : ComponentActivity() {
             val mainViewModel: MainViewModel = viewModel(
                 factory = MainViewModelFactory(repository)
             )
+            val context = LocalContext.current
+            val prefs = remember { context.getSharedPreferences("planner", 0) }
+            var showWelcomeDialog by remember {
+                mutableStateOf(prefs.getBoolean("isFirstRun", true))
+            }
+            var tempTargetCalories by remember { mutableStateOf("") }
 
             val currentScreen: Screen by mainViewModel.currentScreen
             val selectedRecipe by mainViewModel.selectedRecipe
             val selectedIngredient by mainViewModel.selectedIngredient
-
-            val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
 
             val ingredients by mainViewModel.ingredients.collectAsState()
             val recipes by mainViewModel.recipes.collectAsState()
@@ -61,9 +73,53 @@ class MainActivity : ComponentActivity() {
 
             var ingredientToDelete by remember { mutableStateOf<com.ro.macrotracker.model.Ingredient?>(null) }
             val scope = rememberCoroutineScope()
-            val context = LocalContext.current
 
             MacroTrackerTheme {
+                if (showWelcomeDialog) {
+                    val focusManager = LocalFocusManager.current
+                    AlertDialog(
+                        onDismissRequest = { },
+                        title = { Text("Welcome to MacroTracker!") },
+                        text = {
+                            Column(modifier = Modifier.pointerInput(Unit) {
+                                detectTapGestures(onTap = { focusManager.clearFocus() })
+                            }) {
+                                Text("Let's set your daily calorie goal to personalize your experience.")
+                                Spacer(modifier = Modifier.height(16.dp))
+                                OutlinedTextField(
+                                    value = tempTargetCalories,
+                                    onValueChange = { tempTargetCalories = it },
+                                    label = { Text("Daily Calories Target") },
+                                    keyboardOptions = KeyboardOptions(
+                                        keyboardType = KeyboardType.Number,
+                                        imeAction = ImeAction.Done
+                                    ),
+                                    keyboardActions = KeyboardActions(
+                                        onDone = { focusManager.clearFocus() }
+                                    ),
+                                    singleLine = true,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        },
+                        confirmButton = {
+                            Button(
+                                onClick = {
+                                    if (tempTargetCalories.isNotEmpty()) {
+                                        prefs.edit()
+                                            .putBoolean("isFirstRun", false)
+                                            .putString("targetCalories", tempTargetCalories)
+                                            .apply()
+                                        showWelcomeDialog = false
+                                    }
+                                },
+                                enabled = tempTargetCalories.isNotEmpty()
+                            ) {
+                                Text("Get Started")
+                            }
+                        }
+                    )
+                }
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
@@ -129,7 +185,19 @@ class MainActivity : ComponentActivity() {
                                 val recipeSearchQuery by mainViewModel.recipeSearchQuery.collectAsState()
                                 val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
 
-                                Column {
+                                val focusManager = LocalFocusManager.current
+                                val keyboardController = LocalSoftwareKeyboardController.current
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(onTap = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                            })
+                                        }
+                                ) {
                                     OutlinedTextField(
                                         value = recipeSearchQuery,
                                         onValueChange = { mainViewModel.onRecipeSearchQueryChange(it) },
@@ -144,18 +212,28 @@ class MainActivity : ComponentActivity() {
                                             }
                                         },
                                         shape = MaterialTheme.shapes.medium,
-                                        singleLine = true
+                                        singleLine = true,
+                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                                        keyboardActions = KeyboardActions(onSearch = {
+                                            focusManager.clearFocus()
+                                            keyboardController?.hide()
+                                        })
                                     )
 
                                     LazyColumn(modifier = Modifier.weight(1f)) {
                                         items(filteredRecipes) { recipe ->
-                                            Text(
-                                                text = recipe.name,
+                                            Card(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
-                                                    .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
-                                                    .padding(16.dp)
-                                            )
+                                                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                                                    .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) },
+                                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                                            ) {
+                                                ListItem(
+                                                    headlineContent = { Text(recipe.name, fontWeight = FontWeight.Bold) },
+                                                    trailingContent = { Icon(Icons.Default.Info, contentDescription = null) }
+                                                )
+                                            }
                                         }
                                     }
                                 }
@@ -164,7 +242,19 @@ class MainActivity : ComponentActivity() {
                                 val searchQuery by mainViewModel.ingredientSearchQuery.collectAsState()
                                 val filteredIngredients by mainViewModel.filteredIngredients.collectAsState()
 
-                                Column {
+                                val focusManager = LocalFocusManager.current
+                                val keyboardController = LocalSoftwareKeyboardController.current
+
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .pointerInput(Unit) {
+                                            detectTapGestures(onTap = {
+                                                focusManager.clearFocus()
+                                                keyboardController?.hide()
+                                            })
+                                        }
+                                ) {
                                     OutlinedTextField(
                                         value = searchQuery,
                                         onValueChange = { mainViewModel.onIngredientSearchQueryChange(it) },

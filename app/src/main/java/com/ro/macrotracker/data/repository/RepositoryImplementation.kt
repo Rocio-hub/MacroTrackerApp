@@ -86,6 +86,7 @@ class RepositoryImplementation(
     override suspend fun insertDailyLogs(logs: List<com.ro.macrotracker.model.DailyIngredientLog>) {
         val entities = logs.map { it.toEntity() }
         dailyIngredientLogDao.insertAll(entities)
+        println("DEBUG: Insertados ${entities.size} registros en la DB")
     }
 
     override fun getDailyLogs(date: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {

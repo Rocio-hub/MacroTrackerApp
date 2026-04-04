@@ -10,6 +10,7 @@ import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.utils.getStartOfDay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -46,9 +47,13 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     private val _selectedDate = MutableStateFlow(System.currentTimeMillis()) // Por ahora hoy
     val selectedDate = _selectedDate.asStateFlow()
 
-    val dailyLogs: StateFlow<List<com.ro.macrotracker.model.DailyIngredientLog>> = _selectedDate
-        .flatMapLatest { date -> repository.getDailyLogs(date) }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val dailyLogs: StateFlow<List<com.ro.macrotracker.model.DailyIngredientLog>> = repository
+        .getDailyLogs(getStartOfDay(System.currentTimeMillis()))
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
@@ -128,9 +133,11 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         date: Long,
     ) {
         viewModelScope.launch {
+            val normalizedDate = getStartOfDay(date)
+
             val logs = items.map { (ingredient, amount) ->
                 DailyIngredientLog(
-                    date = date,
+                    date = normalizedDate,
                     ingredientId = ingredient.id,
                     amount = amount,
                     recipeId = recipeId

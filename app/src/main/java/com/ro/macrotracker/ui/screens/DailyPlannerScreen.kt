@@ -64,7 +64,7 @@ fun DailyPlannerScreen(
                 fiber += it.fiberPer100g * ratio
             }
         }
-        com.ro.macrotracker.domain.Nutrition(cals, prot, carbs, fat, fiber)
+        com.ro.macrotracker.domain.Nutrition(calories = cals, protein = prot, carbs=carbs, fat=fat, fiber=fiber)
     }
 
     var targetCalories by remember { mutableStateOf("") }

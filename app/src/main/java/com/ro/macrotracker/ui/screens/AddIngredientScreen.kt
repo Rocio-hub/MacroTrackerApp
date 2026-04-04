@@ -39,11 +39,11 @@ fun AddIngredientScreen(
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
-    var calories by remember { mutableStateOf(ingredient?.caloriesPer100g?.toString() ?: "") }
-    var protein by remember { mutableStateOf(ingredient?.proteinPer100g?.toString() ?: "") }
-    var carbs by remember { mutableStateOf(ingredient?.carbsPer100g?.toString() ?: "") }
-    var fat by remember { mutableStateOf(ingredient?.fatPer100g?.toString() ?: "") }
-    var fiber by remember { mutableStateOf(ingredient?.fiberPer100g?.toString() ?: "") }
+    var calories by remember { mutableStateOf(ingredient?.caloriesPer100?.toString() ?: "") }
+    var protein by remember { mutableStateOf(ingredient?.proteinPer100?.toString() ?: "") }
+    var carbs by remember { mutableStateOf(ingredient?.carbsPer100?.toString() ?: "") }
+    var fat by remember { mutableStateOf(ingredient?.fatPer100?.toString() ?: "") }
+    var fiber by remember { mutableStateOf(ingredient?.fiberPer100?.toString() ?: "") }
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -179,11 +179,11 @@ fun AddIngredientScreen(
                     val newIngredient = Ingredient(
                         id = ingredient?.id ?: 0,
                         name = name,
-                        caloriesPer100g = calories.toDoubleOrNull() ?: 0.0,
-                        proteinPer100g = protein.toDoubleOrNull() ?: 0.0,
-                        carbsPer100g = carbs.toDoubleOrNull() ?: 0.0,
-                        fatPer100g = fat.toDoubleOrNull() ?: 0.0,
-                        fiberPer100g = fiber.toDoubleOrNull() ?: 0.0,
+                        caloriesPer100 = calories.toDoubleOrNull() ?: 0.0,
+                        proteinPer100 = protein.toDoubleOrNull() ?: 0.0,
+                        carbsPer100 = carbs.toDoubleOrNull() ?: 0.0,
+                        fatPer100 = fat.toDoubleOrNull() ?: 0.0,
+                        fiberPer100 = fiber.toDoubleOrNull() ?: 0.0,
                         unit = unit
                     )
                     onSave(newIngredient)

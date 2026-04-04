@@ -62,11 +62,11 @@ fun DailyPlannerScreen(
             val ing = ingredients.find { it.id == log.ingredientId }
             ing?.let {
                 val ratio = log.amount / 100.0
-                cals += it.caloriesPer100g * ratio
-                prot += it.proteinPer100g * ratio
-                carbs += it.carbsPer100g * ratio
-                fat += it.fatPer100g * ratio
-                fiber += it.fiberPer100g * ratio
+                cals += it.caloriesPer100 * ratio
+                prot += it.proteinPer100 * ratio
+                carbs += it.carbsPer100 * ratio
+                fat += it.fatPer100 * ratio
+                fiber += it.fiberPer100 * ratio
             }
         }
         com.ro.macrotracker.domain.Nutrition(calories = cals, protein = prot, carbs=carbs, fat=fat, fiber=fiber)
@@ -208,9 +208,18 @@ fun DailyPlannerScreen(
                     val firstLog = logsInThisMeal.firstOrNull()
                     val recipe = recipes.find { it.id == firstLog?.recipeId }
 
-                    val mealCals = logsInThisMeal.sumOf { log ->
+                    val mealNutrition = logsInThisMeal.fold(com.ro.macrotracker.domain.Nutrition()) { acc, log ->
                         val ing = ingredients.find { it.id == log.ingredientId }
-                        ((ing?.caloriesPer100g ?: 0.0) * log.amount) / 100.0
+                        val ratio = log.amount / 100.0
+                        if (ing != null) {
+                            com.ro.macrotracker.domain.Nutrition(
+                                calories = acc.calories + (ing.caloriesPer100 * ratio),
+                                protein = acc.protein + (ing.proteinPer100 * ratio),
+                                carbs = acc.carbs + (ing.carbsPer100 * ratio),
+                                fat = acc.fat + (ing.fatPer100 * ratio),
+                                fiber = acc.fiber + (ing.fiberPer100 * ratio)
+                            )
+                        } else acc
                     }
 
                     Card(
@@ -220,22 +229,30 @@ fun DailyPlannerScreen(
                         )
                     ) {
                         ListItem(
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             headlineContent = { Text(recipe?.name ?: "Unknown", fontWeight = FontWeight.Bold) },
-                            supportingContent = { Text("${mealCals.format()} kcal") },
+                            supportingContent = {
+                                Text("${mealNutrition.calories.format()} kcal", style = MaterialTheme.typography.bodyMedium)
+                            },
                             trailingContent = {
                                 IconButton(onClick = {
                                     recipeToDelete = recipe
                                     sessionIdToDelete = sessionId
                                     showDeleteDialog = true
                                 }) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "Delete",
-                                        tint = MaterialTheme.colorScheme.error
-                                    )
+                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         )
+
+                        Row(
+                            modifier = Modifier.padding(start = 16.dp, bottom = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            MacroBadge("P", mealNutrition.protein, Color(0xFFFFEBEE))
+                            MacroBadge("C", mealNutrition.carbs, Color(0xFFE3F2FD))
+                            MacroBadge("F", mealNutrition.fat, Color(0xFFFFF8E1))
+                        }
                     }
                 }
             }

@@ -18,10 +18,10 @@ fun IngredientDetailScreen(
 
         Text(text = ingredient.name)
 
-        Text(text = "Calories: ${ingredient.caloriesPer100g}")
-        Text(text = "Protein: ${ingredient.proteinPer100g}")
-        Text(text = "Carbs: ${ingredient.carbsPer100g}")
-        Text(text = "Fat: ${ingredient.fatPer100g}")
+        Text(text = "Calories: ${ingredient.caloriesPer100}")
+        Text(text = "Protein: ${ingredient.proteinPer100}")
+        Text(text = "Carbs: ${ingredient.carbsPer100}")
+        Text(text = "Fat: ${ingredient.fatPer100}")
 
         Button(
             onClick = onBack,

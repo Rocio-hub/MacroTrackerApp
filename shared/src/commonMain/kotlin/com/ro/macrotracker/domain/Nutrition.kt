@@ -20,11 +20,11 @@ fun calculateNutrition(
         val factor = grams / 100.0
 
         acc.copy(
-            calories = acc.calories + ingredient.caloriesPer100g * factor,
-            protein = acc.protein + ingredient.proteinPer100g * factor,
-            carbs = acc.carbs + ingredient.carbsPer100g * factor,
-            fat = acc.fat + ingredient.fatPer100g * factor,
-            fiber = acc.fiber + ingredient.fiberPer100g * factor
+            calories = acc.calories + ingredient.caloriesPer100 * factor,
+            protein = acc.protein + ingredient.proteinPer100 * factor,
+            carbs = acc.carbs + ingredient.carbsPer100 * factor,
+            fat = acc.fat + ingredient.fatPer100 * factor,
+            fiber = acc.fiber + ingredient.fiberPer100 * factor
         )
     }
 }

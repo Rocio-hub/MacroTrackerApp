@@ -7,11 +7,11 @@ fun IngredientEntity.toDomain(): Ingredient {
     return Ingredient(
         id = id,
         name = name,
-        caloriesPer100g = caloriesPer100g,
-        proteinPer100g = proteinPer100g,
-        carbsPer100g = carbsPer100g,
-        fatPer100g = fatPer100g,
-        fiberPer100g = fiberPer100g,
+        caloriesPer100 = caloriesPer100,
+        proteinPer100 = proteinPer100,
+        carbsPer100 = carbsPer100,
+        fatPer100 = fatPer100,
+        fiberPer100 = fiberPer100,
         unit = unit
     )
 }
@@ -20,11 +20,11 @@ fun Ingredient.toIngredientEntity(): IngredientEntity {
     return IngredientEntity(
         id = id,
         name = name,
-        caloriesPer100g = caloriesPer100g,
-        proteinPer100g = proteinPer100g,
-        carbsPer100g = carbsPer100g,
-        fatPer100g = fatPer100g,
-        fiberPer100g = fiberPer100g,
+        caloriesPer100 = caloriesPer100,
+        proteinPer100 = proteinPer100,
+        carbsPer100 = carbsPer100,
+        fatPer100 = fatPer100,
+        fiberPer100 = fiberPer100,
         unit = unit
     )
 }

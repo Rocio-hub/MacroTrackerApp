@@ -38,8 +38,8 @@ fun AddRecipeScreen(
 
     // Cálculo de macros: importante usar .toList() para que recompose al cambiar la lista
     val nutrition = remember(selectedItems.toList()) {
-        val cals = selectedItems.sumOf { (ing, amount) -> (ing.caloriesPer100g * amount) / 100 }
-        val prot = selectedItems.sumOf { (ing, amount) -> (ing.proteinPer100g * amount) / 100 }
+        val cals = selectedItems.sumOf { (ing, amount) -> (ing.caloriesPer100 * amount) / 100 }
+        val prot = selectedItems.sumOf { (ing, amount) -> (ing.proteinPer100 * amount) / 100 }
         Pair(cals, prot)
     }
 

@@ -310,11 +310,11 @@ class MainActivity : ComponentActivity() {
                                     com.ro.macrotracker.model.Ingredient(
                                         id = entity.id,
                                         name = entity.name,
-                                        caloriesPer100g = entity.caloriesPer100g,
-                                        proteinPer100g = entity.proteinPer100g,
-                                        carbsPer100g = entity.carbsPer100g,
-                                        fatPer100g = entity.fatPer100g,
-                                        fiberPer100g = entity.fiberPer100g,
+                                        caloriesPer100 = entity.caloriesPer100,
+                                        proteinPer100 = entity.proteinPer100,
+                                        carbsPer100 = entity.carbsPer100,
+                                        fatPer100 = entity.fatPer100,
+                                        fiberPer100 = entity.fiberPer100,
                                         unit = entity.unit
                                     )
                                 }
@@ -373,11 +373,11 @@ class MainActivity : ComponentActivity() {
                                                 val modelIng = com.ro.macrotracker.model.Ingredient(
                                                     id = entity.id,
                                                     name = entity.name,
-                                                    caloriesPer100g = entity.caloriesPer100g,
-                                                    proteinPer100g = entity.proteinPer100g,
-                                                    carbsPer100g = entity.carbsPer100g,
-                                                    fatPer100g = entity.fatPer100g,
-                                                    fiberPer100g = entity.fiberPer100g,
+                                                    caloriesPer100 = entity.caloriesPer100,
+                                                    proteinPer100 = entity.proteinPer100,
+                                                    carbsPer100 = entity.carbsPer100,
+                                                    fatPer100 = entity.fatPer100,
+                                                    fiberPer100 = entity.fiberPer100,
                                                     unit = entity.unit
                                                 )
                                                 modelIng to ri.amount

@@ -2,6 +2,7 @@ package com.ro.macrotracker.ui.screens
 
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,26 +40,41 @@ fun DailyPlannerScreen(
     recipes: List<Recipe>,
     ingredients: List<Ingredient>,
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
+    dailyLogs: List<com.ro.macrotracker.model.DailyIngredientLog>,
     onRecipeClick: (Recipe) -> Unit
 ) {
-
     val context = LocalContext.current
     val viewModel: DailyPlannerViewModel = viewModel()
-    val selectedRecipes by viewModel.selectedRecipes.collectAsState()
+
+    val totalNutrition = remember(dailyLogs, ingredients) {
+        var cals = 0.0
+        var prot = 0.0
+        var carbs = 0.0
+        var fat = 0.0
+        var fiber = 0.0
+
+        dailyLogs.forEach { log ->
+            val ing = ingredients.find { it.id == log.ingredientId }
+            ing?.let {
+                val ratio = log.amount / 100.0
+                cals += it.caloriesPer100g * ratio
+                prot += it.proteinPer100g * ratio
+                carbs += it.carbsPer100g * ratio
+                fat += it.fatPer100g * ratio
+                fiber += it.fiberPer100g * ratio
+            }
+        }
+        com.ro.macrotracker.domain.Nutrition(cals, prot, carbs, fat, fiber)
+    }
 
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
-
     val searchQuery by viewModel.plannerSearchQuery.collectAsState()
+
     val filteredRecipes = remember(searchQuery, recipes) {
-        viewModel.getFilteredRecipes(recipes)
+        if (searchQuery.isBlank()) recipes
+        else recipes.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
-
-    val totalNutrition = remember(selectedRecipes, recipeIngredientsMap, ingredients) {
-        viewModel.calculateTotalNutrition(recipeIngredientsMap, ingredients)
-    }
-
-    val totalCalories = totalNutrition.calories
 
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusManager = LocalFocusManager.current
@@ -68,180 +84,106 @@ fun DailyPlannerScreen(
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
-    LaunchedEffect(targetCalories) {
-        val prefs = context.getSharedPreferences("planner", 0)
-        prefs.edit().putString("targetCalories", targetCalories).apply()
-    }
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp)
-    ) {
+    Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp)) {
         OutlinedTextField(
             value = targetCalories,
-            onValueChange = { targetCalories = it },
+            onValueChange = {
+                targetCalories = it
+                context.getSharedPreferences("planner", 0).edit().putString("targetCalories", it).apply()
+            },
             label = { Text("Daily Calories Target") },
             modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            shape = MaterialTheme.shapes.medium,
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    keyboardController?.hide()
-                    focusManager.clearFocus()
-                }
-            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = {
+                keyboardController?.hide()
+                focusManager.clearFocus()
+            })
         )
 
         Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(2.dp)),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
             shape = MaterialTheme.shapes.extraLarge
         ) {
-           Column(modifier = Modifier.padding(20.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
+            Column(modifier = Modifier.padding(20.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Column {
-                        Text("Daily Progress", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-                        Text("${totalCalories.format()} / ${target.format()} kcal",
+                        Text("Daily Progress", style = MaterialTheme.typography.labelMedium)
+                        Text("${totalNutrition.calories.format()} / ${target.format()} kcal",
                             style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
                     }
-
-                    Surface(
-                        color = when {
-                            target == 0.0 -> MaterialTheme.colorScheme.surfaceVariant
-                            totalCalories > target -> MaterialTheme.colorScheme.errorContainer
-                            else -> MaterialTheme.colorScheme.primaryContainer
-                        },
-                        shape = MaterialTheme.shapes.medium
-                    ) {
-                        Text(
-                            text = when {
-                                target == 0.0 -> "Set Target"
-                                totalCalories > target -> "Over Limit"
-                                else -> "Left: ${(target - totalCalories).format()}"
-                            },
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold
-                        )
-                    }
                 }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
                 LinearProgressIndicator(
-                    progress = { if (target > 0) (totalCalories / target).toFloat().coerceAtMost(1f) else 0f },
-
-                   modifier = Modifier.fillMaxWidth().height(8.dp),
-                    strokeCap = StrokeCap.Round,
-                    color = if (totalCalories > target) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    progress = { if (target > 0) (totalNutrition.calories / target).toFloat().coerceAtMost(1f) else 0f },
+                    modifier = Modifier.fillMaxWidth().height(8.dp).padding(vertical = 8.dp),
+                    strokeCap = StrokeCap.Round
                 )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     MacroSummaryItem("Protein", totalNutrition.protein, Color(0xFFEF5350))
                     MacroSummaryItem("Carbs", totalNutrition.carbs, Color(0xFF42A5F5))
                     MacroSummaryItem("Fat", totalNutrition.fat, Color(0xFFFFB300))
-                    MacroSummaryItem("Fiber", totalNutrition.fiber, Color(0xFF66BB6A))
                 }
             }
         }
 
         Text("Add to your day", style = MaterialTheme.typography.titleMedium)
-
         OutlinedTextField(
             value = searchQuery,
             onValueChange = { viewModel.onSearchQueryChange(it) },
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-            placeholder = { Text("Search recipe to add...") },
-            leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-            trailingIcon = {
-                if (searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.onSearchQueryChange("") }) {
-                        Icon(Icons.Default.Clear, contentDescription = null)
-                    }
-                }
-            },
-            shape = MaterialTheme.shapes.medium,
-            singleLine = true
+            placeholder = { Text("Search recipe...") },
+            leadingIcon = { Icon(Icons.Default.Search, null) }
         )
 
         LazyColumn(
             modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(bottom = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
+            val eatenRecipes = dailyLogs.groupBy { it.recipeId }
+            if (eatenRecipes.isNotEmpty()) {
+                item { Text("Consumed Today", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+                items(eatenRecipes.keys.toList()) { recipeId ->
+                    val recipe = recipes.find { it.id == recipeId }
+                    val logsForThisRecipe = eatenRecipes[recipeId] ?: emptyList()
+                    val mealCals = logsForThisRecipe.sumOf { log ->
+                        val ing = ingredients.find { it.id == log.ingredientId }
+                        ((ing?.caloriesPer100g ?: 0.0) * log.amount) / 100.0
+                    }
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f))
+                    ) {
+                        ListItem(
+                            headlineContent = { Text(recipe?.name ?: "Unknown", fontWeight = FontWeight.Bold) },
+                            supportingContent = { Text("${mealCals.format()} kcal") },
+                            trailingContent = { Icon(Icons.Default.Info, null) },
+                            modifier = Modifier.clickable { recipe?.let { onRecipeClick(it) } }
+                        )
+                    }
+                }
+            }
+
+            item { Spacer(modifier = Modifier.height(8.dp)) }
+            item { Text("All Recipes", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary) }
+
             items(filteredRecipes) { recipe ->
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
                 val nutrition = calculateRecipeNutrition(ris, ingredients)
-                val count = selectedRecipes[recipe] ?: 0
-                val isSelected = count > 0
 
                 Card(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface
-                    ),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
-                    onClick = { if (!isSelected) viewModel.addRecipe(recipe) }
+                    onClick = { onRecipeClick(recipe) }
                 ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(recipe.name, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                            IconButton(onClick = { onRecipeClick(recipe) }) {
-                                Icon(Icons.Default.Info, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(recipe.name, style = MaterialTheme.typography.titleMedium)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MacroBadge("P", nutrition.protein, Color(0xFFFFEBEE))
+                                MacroBadge("C", nutrition.carbs, Color(0xFFE3F2FD))
+                                MacroBadge("F", nutrition.fat, Color(0xFFFFF8E1))
                             }
                         }
-
-                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Text("${nutrition.calories.format()} kcal", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold)
-                            VerticalDivider(modifier = Modifier.height(16.dp), thickness = 1.dp)
-                            MacroBadge("P", nutrition.protein, Color(0xFFFFEBEE))
-                            MacroBadge("C", nutrition.carbs, Color(0xFFE3F2FD))
-                            MacroBadge("F", nutrition.fat, Color(0xFFFFF8E1))
-                        }
-
-                        if (isSelected) {
-                            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                IconButton(onClick = { viewModel.removeRecipe(recipe) }) {
-                                    Icon(Icons.Default.Remove, contentDescription = null)
-                                }
-
-                                AnimatedContent(
-                                    targetState = count,
-                                    transitionSpec = {
-                                        if (targetState > initialState) {
-                                            (slideInVertically { it } + fadeIn()) togetherWith (slideOutVertically { -it } + fadeOut())
-                                        } else {
-                                            (slideInVertically { -it } + fadeIn()) togetherWith (slideOutVertically { it } + fadeOut())
-                                        }.using(SizeTransform(clip = false))
-                                    },
-                                    label = "countAnim"
-                                ) { targetCount ->
-                                    Text(targetCount.toString(), style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 20.dp))
-                                }
-
-                                IconButton(onClick = { viewModel.addRecipe(recipe) }) {
-                                    Icon(Icons.Default.Add, contentDescription = null)
-                                }
-                            }
-                        }
+                        Text("${nutrition.calories.format()} kcal", fontWeight = FontWeight.Bold)
                     }
                 }
             }

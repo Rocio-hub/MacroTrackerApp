@@ -1,5 +1,6 @@
 package com.ro.macrotracker.domain.repository
 
+import com.ro.macrotracker.model.DailyIngredientLog
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.RecipeIngredient
@@ -23,4 +24,7 @@ interface Repository {
     suspend fun insertRecipeIngredients(ingredients: List<RecipeIngredient>)
     suspend fun updateRecipeIngredient(recipeIngredient: RecipeIngredient)
     suspend fun deleteRecipeIngredient(id: Int)
+
+    fun getDailyLogs(date: Long): Flow<List<DailyIngredientLog>>
+    suspend fun insertDailyLogs(logs: List<DailyIngredientLog>)
 }

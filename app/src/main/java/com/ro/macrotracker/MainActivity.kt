@@ -38,6 +38,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import com.ro.macrotracker.data.mappers.toDomain
+import com.ro.macrotracker.model.Recipe
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,9 +49,10 @@ class MainActivity : ComponentActivity() {
 
         val db = com.ro.macrotracker.data.local.database.AppDatabase.getDatabase(applicationContext)
         val repository = RepositoryImplementation(
-            db.ingredientDao(),
-            db.recipeDao(),
-            db.recipeIngredientDao()
+            ingredientDao = db.ingredientDao(),
+            recipeDao = db.recipeDao(),
+            recipeIngredientDao = db.recipeIngredientDao(),
+            dailyIngredientLogDao = db.dailyIngredientLogDao()
         )
 
         setContent {
@@ -140,6 +142,7 @@ class MainActivity : ComponentActivity() {
                                     Screen.ADD_RECIPE -> "Add Recipe"
                                     Screen.ADD_INGREDIENT -> "Add Ingredient"
                                     Screen.RECIPE_DETAIL -> selectedRecipe?.name ?: "Detail"
+                                    Screen.ADJUST_MEAL -> "Adjust Meal"
                                 })
                             },
                             navigationIcon = {
@@ -343,14 +346,57 @@ class MainActivity : ComponentActivity() {
                                 )
                             }
                             Screen.PLANNER -> {
+                                val dailyLogs by mainViewModel.dailyLogs.collectAsState()
                                 val recipeIngredientsMap = remember(allRI) { allRI.groupBy { it.recipeId } }
 
                                 DailyPlannerScreen(
                                     recipes = recipes,
                                     ingredients = ingredients,
                                     recipeIngredientsMap = recipeIngredientsMap,
-                                    onRecipeClick = { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = it) }
+                                    dailyLogs = dailyLogs,
+                                    onRecipeClick = { recipe ->
+                                        mainViewModel.navigateTo(Screen.ADJUST_MEAL, recipe = recipe)
+                                    }
                                 )
+                            }
+                            Screen.ADJUST_MEAL -> {
+                                selectedRecipe?.let { recipeModel ->
+                                    val recipeIngredients by mainViewModel.allRecipeIngredients.collectAsState()
+                                    val allEntities by mainViewModel.ingredients.collectAsState()
+
+                                    val initialItems = recipeIngredients
+                                        .filter { it.recipeId == recipeModel.id }
+                                        .mapNotNull { ri ->
+                                            val entity = allEntities.find { it.id == ri.ingredientId }
+                                            if (entity != null) {
+                                                val modelIng = com.ro.macrotracker.model.Ingredient(
+                                                    id = entity.id,
+                                                    name = entity.name,
+                                                    caloriesPer100g = entity.caloriesPer100g,
+                                                    proteinPer100g = entity.proteinPer100g,
+                                                    carbsPer100g = entity.carbsPer100g,
+                                                    fatPer100g = entity.fatPer100g,
+                                                    fiberPer100g = entity.fiberPer100g,
+                                                    unit = entity.unit
+                                                )
+                                                modelIng to ri.amount
+                                            } else null
+                                        }
+
+                                    AdjustMealScreen(
+                                        recipe = recipeModel,
+                                        initialIngredients = initialItems,
+                                        onConfirm = { adjustedItems ->
+                                            mainViewModel.saveMealToPlanner(
+                                                recipeId = recipeModel.id,
+                                                items = adjustedItems,
+                                                date = System.currentTimeMillis()
+                                            )
+                                            mainViewModel.navigateTo(Screen.PLANNER)
+                                        },
+                                        onCancel = { mainViewModel.goBack() }
+                                    )
+                                }
                             }
                         }
                     }

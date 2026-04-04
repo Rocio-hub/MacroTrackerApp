@@ -1,5 +1,6 @@
 package com.ro.macrotracker.data.repository
 
+import com.ro.macrotracker.data.local.dao.DailyIngredientLogDao
 import com.ro.macrotracker.data.local.dao.IngredientDao
 import com.ro.macrotracker.data.local.dao.RecipeDao
 import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
@@ -17,7 +18,8 @@ import com.ro.macrotracker.data.mappers.toEntity
 class RepositoryImplementation(
     private val ingredientDao: IngredientDao,
     private val recipeDao: RecipeDao,
-    private val recipeIngredientDao: RecipeIngredientDao
+    private val recipeIngredientDao: RecipeIngredientDao,
+    private val dailyIngredientLogDao: DailyIngredientLogDao
 ) : Repository {
 
     override fun getAllIngredients(): Flow<List<Ingredient>> {
@@ -79,5 +81,16 @@ class RepositoryImplementation(
 
     override suspend fun deleteRecipeIngredient(id: Int) {
         recipeIngredientDao.deleteRecipeIngredient(id)
+    }
+
+    override suspend fun insertDailyLogs(logs: List<com.ro.macrotracker.model.DailyIngredientLog>) {
+        val entities = logs.map { it.toEntity() }
+        dailyIngredientLogDao.insertAll(entities)
+    }
+
+    override fun getDailyLogs(date: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
+        return dailyIngredientLogDao.getLogsByDate(date).map { entities ->
+            entities.map { it.toDomain() }
+        }
     }
 }

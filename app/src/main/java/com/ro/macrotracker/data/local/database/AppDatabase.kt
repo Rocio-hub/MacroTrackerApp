@@ -2,9 +2,11 @@ package com.ro.macrotracker.data.local.database
 
 import androidx.room.Database
 import androidx.room.RoomDatabase
+import com.ro.macrotracker.data.local.dao.DailyIngredientLogDao
 import com.ro.macrotracker.data.local.dao.IngredientDao
 import com.ro.macrotracker.data.local.dao.RecipeDao
 import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
+import com.ro.macrotracker.data.local.entity.DailyIngredientLog
 import com.ro.macrotracker.data.local.entity.Ingredient
 import com.ro.macrotracker.data.local.entity.Recipe
 import com.ro.macrotracker.data.local.entity.RecipeIngredient
@@ -13,14 +15,17 @@ import com.ro.macrotracker.data.local.entity.RecipeIngredient
     entities = [
         Ingredient::class,
         Recipe::class,
-        RecipeIngredient::class
+        RecipeIngredient::class,
+        DailyIngredientLog::class
     ],
-    version = 3
+    version = 4,
+    exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun ingredientDao(): IngredientDao
     abstract fun recipeDao(): RecipeDao
     abstract fun recipeIngredientDao(): RecipeIngredientDao
+    abstract fun dailyIngredientLogDao(): DailyIngredientLogDao
 
     companion object {
         @Volatile

@@ -5,6 +5,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ro.macrotracker.Screen
+import com.ro.macrotracker.model.DailyIngredientLog
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
@@ -42,6 +43,13 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _selectedDate = MutableStateFlow(System.currentTimeMillis()) // Por ahora hoy
+    val selectedDate = _selectedDate.asStateFlow()
+
+    val dailyLogs: StateFlow<List<com.ro.macrotracker.model.DailyIngredientLog>> = _selectedDate
+        .flatMapLatest { date -> repository.getDailyLogs(date) }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
     }
@@ -61,6 +69,7 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
             Screen.RECIPE_DETAIL -> Screen.RECIPES
             Screen.ADD_RECIPE -> Screen.RECIPES
             Screen.ADD_INGREDIENT -> Screen.INGREDIENTS
+            Screen.ADJUST_MEAL -> Screen.PLANNER
             else -> _currentScreen.value
         }
     }
@@ -113,4 +122,21 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     }
 
 
+    fun saveMealToPlanner(
+        recipeId: Int,
+        items: List<Pair<Ingredient, Double>>,
+        date: Long,
+    ) {
+        viewModelScope.launch {
+            val logs = items.map { (ingredient, amount) ->
+                DailyIngredientLog(
+                    date = date,
+                    ingredientId = ingredient.id,
+                    amount = amount,
+                    recipeId = recipeId
+                )
+            }
+            repository.insertDailyLogs(logs)
+        }
+    }
 }

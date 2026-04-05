@@ -5,10 +5,10 @@ import com.ro.macrotracker.model.RecipeIngredient
 
 data class Nutrition(
     val calories: Double = 0.0,
-    val protein: Double = 0.0,
-    val carbs: Double = 0.0,
     val fat: Double = 0.0,
-    val fiber: Double = 0.0
+    val carbs: Double = 0.0,
+    val fiber: Double = 0.0,
+    val protein: Double = 0.0
 )
 
 fun calculateNutrition(
@@ -21,11 +21,11 @@ fun calculateNutrition(
 
         acc.copy(
             calories = acc.calories + ingredient.caloriesPer100 * factor,
-            protein = acc.protein + ingredient.proteinPer100 * factor,
-            carbs = acc.carbs + ingredient.carbsPer100 * factor,
             fat = acc.fat + ingredient.fatPer100 * factor,
-            fiber = acc.fiber + ingredient.fiberPer100 * factor
-        )
+            carbs = acc.carbs + ingredient.carbsPer100 * factor,
+            fiber = acc.fiber + ingredient.fiberPer100 * factor,
+            protein = acc.protein + ingredient.proteinPer100 * factor
+            )
     }
 }
 

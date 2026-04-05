@@ -300,10 +300,10 @@ fun DailyPlannerScreen(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
-                    MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                     MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
+                    MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                     MacroSummaryItem("Fiber", totalNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
+                    MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
                 }
             }
         }
@@ -341,10 +341,10 @@ fun DailyPlannerScreen(
                         if (ing != null) {
                             com.ro.macrotracker.domain.Nutrition(
                                 calories = acc.calories + (ing.caloriesPer100 * ratio),
-                                protein = acc.protein + (ing.proteinPer100 * ratio),
-                                carbs = acc.carbs + (ing.carbsPer100 * ratio),
                                 fat = acc.fat + (ing.fatPer100 * ratio),
-                                fiber = acc.fiber + (ing.fiberPer100 * ratio)
+                                carbs = acc.carbs + (ing.carbsPer100 * ratio),
+                                fiber = acc.fiber + (ing.fiberPer100 * ratio),
+                                protein = acc.protein + (ing.proteinPer100 * ratio)
                             )
                         } else acc
                     }
@@ -378,10 +378,10 @@ fun DailyPlannerScreen(
                                 .padding(horizontal = 8.dp),
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
-                            MacroSummaryItem("Protein", mealNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
-                            MacroSummaryItem("Carbs", mealNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                             MacroSummaryItem("Fat", mealNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
+                            MacroSummaryItem("Carbs", mealNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                             MacroSummaryItem("Fiber", mealNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
+                            MacroSummaryItem("Protein", mealNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
                         }
                     }
                 }

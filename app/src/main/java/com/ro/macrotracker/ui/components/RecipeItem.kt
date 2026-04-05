@@ -77,10 +77,10 @@ fun RecipeItem(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    MacroBadgeSmall("Protein", nutrition.protein, Color(0xFFEF5350))
-                    MacroBadgeSmall("Carbs", nutrition.carbs, Color(0xFF42A5F5))
                     MacroBadgeSmall("Fat", nutrition.fat, Color(0xFFFFB300))
+                    MacroBadgeSmall("Carbs", nutrition.carbs, Color(0xFF42A5F5))
                     MacroBadgeSmall("Fiber", nutrition.fiber, Color(0xFF50C878))
+                    MacroBadgeSmall("Protein", nutrition.protein, Color(0xFFEF5350))
                 }
             }
         }

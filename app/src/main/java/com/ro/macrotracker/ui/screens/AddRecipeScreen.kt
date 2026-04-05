@@ -9,10 +9,8 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddAPhoto
@@ -32,6 +30,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
+import com.ro.macrotracker.ui.components.MacroBadgeSmall
 import com.ro.macrotracker.utils.format
 
 @Composable
@@ -65,144 +64,120 @@ fun AddRecipeScreen(
     var selectedImageUri by remember { mutableStateOf<String?>(null) }
     val photoPickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri ->
-            selectedImageUri = uri?.toString()
-        }
+        onResult = { uri -> selectedImageUri = uri?.toString() }
     )
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
             .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
-            .verticalScroll(rememberScrollState())
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            contentPadding = PaddingValues(bottom = 16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                    .clickable {
-                        photoPickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                contentAlignment = Alignment.Center
-            ) {
-                if (selectedImageUri != null) {
-                    AsyncImage(
-                        model = selectedImageUri,
-                        contentDescription = "Recipe Photo",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(72.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
+                            .clickable {
+                                photoPickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (selectedImageUri != null) {
+                            AsyncImage(
+                                model = selectedImageUri,
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(32.dp), tint = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+
+                    OutlinedTextField(
+                        value = recipeName,
+                        onValueChange = { recipeName = it },
+                        label = { Text("Recipe Name") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        shape = MaterialTheme.shapes.medium
                     )
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.AddAPhoto,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
                 }
             }
 
-            OutlinedTextField(
-                value = recipeName,
-                onValueChange = { recipeName = it },
-                label = { Text("Name") },
-                modifier = Modifier.weight(1f),
-                singleLine = true,
-                shape = MaterialTheme.shapes.medium
-            )
-        }
-
-        HorizontalDivider(modifier = Modifier.padding(bottom = 16.dp))
-
-        Card(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 12.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-            ),
-            shape = MaterialTheme.shapes.medium
-        ) {
-            Row(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Total", style = MaterialTheme.typography.labelSmall)
-                    Text("${nutrition.kcal.format()} kcal", fontWeight = FontWeight.ExtraBold)
-                }
-
-                VerticalDivider(modifier = Modifier.height(24.dp), thickness = 1.dp)
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("P", color = Color(0xFFEF5350), fontWeight = FontWeight.Bold)
-                    Text("${nutrition.p.format()} g", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("C", color = Color(0xFF42A5F5), fontWeight = FontWeight.Bold)
-                    Text("${nutrition.c.format()} g", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("F", color = Color(0xFFFFB300), fontWeight = FontWeight.Bold)
-                    Text("${nutrition.f.format()} g", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Fi", color = Color(0xFF50C878), fontWeight = FontWeight.Bold)
-                    Text("${nutrition.fi.format()} g", style = MaterialTheme.typography.bodyMedium)
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                    ),
+                    shape = MaterialTheme.shapes.medium
+                ) {
+                    Row(
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        SummaryColumn("Total", "${nutrition.kcal.format()} kcal", Color.Unspecified)
+                        SummaryColumn("F", "${nutrition.f.format()} g", Color(0xFFFFB300))
+                        SummaryColumn("C", "${nutrition.c.format()} g", Color(0xFF42A5F5))
+                        SummaryColumn("Fi", "${nutrition.fi.format()} g", Color(0xFF50C878))
+                        SummaryColumn("P", "${nutrition.p.format()} g", Color(0xFFEF5350))
+                    }
                 }
             }
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Ingredients", style = MaterialTheme.typography.titleMedium)
-            IconButton(onClick = { showDialog = true }) {
-                Icon(Icons.Default.Add, contentDescription = "Add", tint = MaterialTheme.colorScheme.primary)
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("Ingredients", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    IconButton(onClick = { showDialog = true }) {
+                        Icon(Icons.Default.Add, "Add", tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
             }
-        }
 
-        LazyColumn(modifier = Modifier.weight(1f)) {
             items(selectedItems, key = { it.first.id }) { item ->
                 val (ing, amount) = item
+                val factor = amount / 100.0
 
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        .padding(horizontal = 16.dp, vertical = 4.dp),
                     colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surface
-                    )
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                    ),
+                    shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
-                        modifier = Modifier
-                            .padding(12.dp)
-                            .fillMaxWidth(),
+                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(54.dp)
                                 .clip(CircleShape)
                                 .background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
@@ -215,52 +190,71 @@ fun AddRecipeScreen(
                                     contentScale = ContentScale.Crop
                                 )
                             } else {
-                                Text("🥦")
+                                Text("🥦", style = MaterialTheme.typography.headlineSmall)
                             }
                         }
 
                         Spacer(modifier = Modifier.width(12.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = ing.name,
-                                fontWeight = FontWeight.Bold,
-                                style = MaterialTheme.typography.bodyLarge,
-                                maxLines = 1
-                            )
-
-                            val factor = amount / 100.0
-                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                                Text("P: ${(ing.proteinPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFFEF5350))
-                                Text("C: ${(ing.carbsPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFF42A5F5))
-                                Text("F: ${(ing.fatPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFB300))
-                            }
-                        }
-
-                        OutlinedTextField(
-                            value = if (amount == 0.0) "" else amount.toString(),
-                            onValueChange = { newValue ->
-                                val filteredValue = newValue.filter { it.isDigit() || it == '.' }
-                                val newAmount = filteredValue.toDoubleOrNull() ?: 0.0
-                                val index = selectedItems.indexOf(item)
-                                if (index != -1) {
-                                    selectedItems[index] = ing to newAmount
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = ing.name,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = "${(ing.caloriesPer100 * factor).format()} kcal total",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                                    )
                                 }
-                            },
-                            modifier = Modifier.width(90.dp),
-                            label = { Text(ing.unit, style = MaterialTheme.typography.labelSmall) },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true,
-                            textStyle = MaterialTheme.typography.bodySmall
-                        )
 
-                        IconButton(onClick = { selectedItems.remove(item) }) {
-                            Icon(
-                                imageVector = Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
-                                modifier = Modifier.size(20.dp)
-                            )
+                                OutlinedTextField(
+                                    value = if (amount == 0.0) "" else amount.toString(),
+                                    onValueChange = { newValue ->
+                                        val filtered = newValue.filter { it.isDigit() || it == '.' }
+                                        val index = selectedItems.indexOf(item)
+                                        if (index != -1) {
+                                            selectedItems[index] = ing to (filtered.toDoubleOrNull() ?: 0.0)
+                                        }
+                                    },
+                                    modifier = Modifier.width(85.dp),
+                                    label = { Text(ing.unit, style = MaterialTheme.typography.labelSmall) },
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    singleLine = true,
+                                    textStyle = MaterialTheme.typography.bodySmall
+                                )
+
+                                IconButton(
+                                    onClick = { selectedItems.remove(item) },
+                                    modifier = Modifier.size(32.dp).padding(start = 4.dp)
+                                ) {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        null,
+                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                MacroBadgeSmall("Fat", ing.fatPer100 * factor, Color(0xFFFFB300))
+                                MacroBadgeSmall("Carbs", ing.carbsPer100 * factor, Color(0xFF42A5F5))
+                                MacroBadgeSmall("Fiber", ing.fiberPer100 * factor, Color(0xFF50C878))
+                                MacroBadgeSmall("Protein", ing.proteinPer100 * factor, Color(0xFFEF5350))
+                            }
                         }
                     }
                 }
@@ -270,23 +264,16 @@ fun AddRecipeScreen(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 16.dp, bottom = 16.dp),
+                .padding(16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f)
-            ) {
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
                 Text("Cancel")
             }
             Button(
                 onClick = { onSave(recipeName, selectedImageUri, selectedItems.toList()) },
                 modifier = Modifier.weight(1f),
-                enabled = recipeName.isNotBlank() && selectedItems.isNotEmpty(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                enabled = recipeName.isNotBlank() && selectedItems.isNotEmpty()
             ) {
                 Text("Save")
             }
@@ -306,5 +293,13 @@ fun AddRecipeScreen(
             },
             onDismiss = { showDialog = false }
         )
+    }
+}
+
+@Composable
+fun SummaryColumn(label: String, value: String, color: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = color, fontWeight = FontWeight.Bold)
+        Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.ExtraBold)
     }
 }

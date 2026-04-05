@@ -54,6 +54,7 @@ fun RecipeDetailScreen(
                     Text("P: ${nutrition.protein.format()} g")
                     Text("C: ${nutrition.carbs.format()} g")
                     Text("F: ${nutrition.fat.format()} g")
+                    Text("Fi: ${nutrition.fiber.format()} g")
                 }
             }
         }

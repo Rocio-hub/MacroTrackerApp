@@ -235,18 +235,19 @@ class MainActivity : ComponentActivity() {
 
                                     LazyColumn(modifier = Modifier.weight(1f)) {
                                         items(filteredRecipes) { recipe ->
-                                            Card(
-                                                modifier = Modifier
-                                                    .fillMaxWidth()
-                                                    .padding(horizontal = 16.dp, vertical = 4.dp)
-                                                    .clickable { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) },
-                                                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                                            ) {
-                                                ListItem(
-                                                    headlineContent = { Text(recipe.name, fontWeight = FontWeight.Bold) },
-                                                    trailingContent = { Icon(Icons.Default.Info, contentDescription = null) }
-                                                )
-                                            }
+
+                                            val recipeIngredients = allRI.filter { it.recipeId == recipe.id }
+
+                                            val nutrition = com.ro.macrotracker.domain.calculateRecipeNutrition(
+                                                recipeIngredients,
+                                                ingredients
+                                            )
+
+                                            com.ro.macrotracker.ui.components.RecipeItem(
+                                                recipe = recipe,
+                                                nutrition = nutrition,
+                                                onClick = { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
+                                            )
                                         }
                                     }
                                 }

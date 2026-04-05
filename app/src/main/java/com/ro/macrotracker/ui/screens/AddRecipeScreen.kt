@@ -189,35 +189,81 @@ fun AddRecipeScreen(
                 val (ing, amount) = item
 
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surface
+                    )
                 ) {
                     Row(
-                        modifier = Modifier.padding(12.dp),
+                        modifier = Modifier
+                            .padding(12.dp)
+                            .fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(ing.name, modifier = Modifier.weight(1f), fontWeight = FontWeight.Medium)
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (!ing.imageUri.isNullOrBlank()) {
+                                AsyncImage(
+                                    model = ing.imageUri,
+                                    contentDescription = null,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
+                                )
+                            } else {
+                                Text("🥦")
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = ing.name,
+                                fontWeight = FontWeight.Bold,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1
+                            )
+
+                            val factor = amount / 100.0
+                            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                Text("P: ${(ing.proteinPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFFEF5350))
+                                Text("C: ${(ing.carbsPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFF42A5F5))
+                                Text("F: ${(ing.fatPer100 * factor).format()}g", style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFB300))
+                            }
+                        }
 
                         OutlinedTextField(
                             value = if (amount == 0.0) "" else amount.toString(),
                             onValueChange = { newValue ->
-                                // Filtramos para que solo acepte números y un punto
                                 val filteredValue = newValue.filter { it.isDigit() || it == '.' }
                                 val newAmount = filteredValue.toDoubleOrNull() ?: 0.0
-
                                 val index = selectedItems.indexOf(item)
                                 if (index != -1) {
                                     selectedItems[index] = ing to newAmount
                                 }
                             },
-                            modifier = Modifier.width(100.dp),
-                            label = { Text(" ${ing.unit}") },
+                            modifier = Modifier.width(90.dp),
+                            label = { Text(ing.unit, style = MaterialTheme.typography.labelSmall) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                            singleLine = true
+                            singleLine = true,
+                            textStyle = MaterialTheme.typography.bodySmall
                         )
 
                         IconButton(onClick = { selectedItems.remove(item) }) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            Icon(
+                                imageVector = Icons.Default.Delete,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f),
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
                     }
                 }

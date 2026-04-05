@@ -5,6 +5,7 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -17,9 +18,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -31,6 +34,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.RecipeIngredient
@@ -40,6 +44,8 @@ import com.ro.macrotracker.utils.format
 import java.text.SimpleDateFormat
 import java.util.*
 import com.ro.macrotracker.utils.*
+import androidx.compose.ui.unit.sp
+import com.ro.macrotracker.ui.components.RecipeItem
 
 @Composable
 fun DailyPlannerScreen(
@@ -395,24 +401,38 @@ fun DailyPlannerScreen(
                 val ris = recipeIngredientsMap[recipe.id] ?: emptyList()
                 val nutrition = calculateRecipeNutrition(ris, ingredients)
 
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
+                RecipeItem(
+                    recipe = recipe,
+                    nutrition = nutrition,
                     onClick = { onRecipeClick(recipe) }
-                ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(recipe.name, style = MaterialTheme.typography.titleMedium)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MacroBadge("P", nutrition.protein, Color(0xFFFFEBEE))
-                                MacroBadge("C", nutrition.carbs, Color(0xFFE3F2FD))
-                                MacroBadge("F", nutrition.fat, Color(0xFFFFF8E1))
-                                MacroBadge("Fi", nutrition.fiber, Color(0xFF50C878))
-                            }
-                        }
-                        Text("${nutrition.calories.format()} kcal", fontWeight = FontWeight.Bold)
-                    }
-                }
+                )
             }
+        }
+    }
+}
+
+@Composable
+fun MacroBadgeSmall(label: String, value: Double, color: Color) {
+    Surface(
+        color = color.copy(alpha = 0.15f),
+        shape = MaterialTheme.shapes.small,
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = color
+            )
+            Text(
+                text = "${value.format()}g",
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.ExtraBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }
@@ -421,7 +441,7 @@ fun DailyPlannerScreen(
 fun MacroSummaryItem(label: String, value: Double, color: Color) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.widthIn(min = 60.dp) // 👈 Da una base sólida al componente
+        modifier = Modifier.widthIn(min = 60.dp)
     ) {
         Surface(
             color = color.copy(alpha = 0.2f),

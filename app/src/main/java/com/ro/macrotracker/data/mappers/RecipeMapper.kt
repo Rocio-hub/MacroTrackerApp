@@ -6,13 +6,15 @@ import com.ro.macrotracker.model.Recipe
 fun RecipeEntity.toDomain(): Recipe {
     return Recipe(
         id = id,
-        name = name
+        name = name,
+        imageUri = imageUri
     )
 }
 
 fun Recipe.toRecipeEntity(): RecipeEntity {
     return RecipeEntity(
         id = id,
-        name = name
+        name = name,
+        imageUri = imageUri
     )
 }

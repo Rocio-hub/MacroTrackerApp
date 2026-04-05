@@ -84,23 +84,22 @@ class RepositoryImplementation(
         recipeIngredientDao.deleteRecipeIngredient(id)
     }
 
-    override suspend fun insertDailyLogs(logs: List<com.ro.macrotracker.model.DailyIngredientLog>) {
+    override suspend fun insertDailyLogs(logs: List<DailyIngredientLog>) {
         val entities = logs.map { it.toEntity() }
         dailyIngredientLogDao.insertAll(entities)
-        println("DEBUG: Insertados ${entities.size} registros en la DB")
     }
 
     override suspend fun deleteMealFromPlanner(sessionId: Long) {
         dailyIngredientLogDao.deleteLogsBySession(sessionId)
     }
 
-    override fun getDailyLogs(date: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
+    override fun getDailyLogs(date: Long): Flow<List<DailyIngredientLog>> {
         return dailyIngredientLogDao.getLogsByDate(date).map { entities ->
             entities.map { it.toDomain() }
         }
     }
 
-    override fun getLogsForDate(start: Long, end: Long): Flow<List<com.ro.macrotracker.model.DailyIngredientLog>> {
+    override fun getLogsForDate(start: Long, end: Long): Flow<List<DailyIngredientLog>> {
         return dailyIngredientLogDao.getLogsForDate(start, end).map { list ->
             list.map { it.toDomain() }
         }

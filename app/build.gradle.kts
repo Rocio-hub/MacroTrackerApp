@@ -19,6 +19,10 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        kapt {
+            correctErrorTypes = true
+        }
     }
 
     buildTypes {
@@ -71,16 +75,25 @@ dependencies {
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
     implementation(project(":shared"))
-    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-    implementation("androidx.compose.material:material-icons-extended:1.7.0")
-    implementation("io.coil-kt:coil-compose:2.6.0")
+    implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.coil.compose)
 }
 
 configurations.all {
-    resolutionStrategy {
-        force("androidx.lifecycle:lifecycle-runtime-compose:2.7.0")
-        force("androidx.lifecycle:lifecycle-viewmodel-compose:2.7.0")
-        force("androidx.lifecycle:lifecycle-runtime-ktx:2.7.0")
+    resolutionStrategy.eachDependency {
+        if (requested.group == "org.jetbrains.kotlin") {
+            useVersion("1.9.24")
+        }
+        if (requested.group.startsWith("androidx.core") ||
+            requested.group.startsWith("androidx.lifecycle") ||
+            requested.group.startsWith("androidx.activity")) {
+
+            if (requested.name.contains("core")) useVersion("1.13.1")
+            if (requested.name.contains("lifecycle")) useVersion("2.8.4")
+            if (requested.name.contains("activity")) useVersion("1.9.0")
+        }
     }
 }
+

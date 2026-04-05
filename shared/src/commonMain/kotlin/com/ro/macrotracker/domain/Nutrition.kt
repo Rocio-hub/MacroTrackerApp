@@ -30,8 +30,8 @@ fun calculateNutrition(
 }
 
 fun calculateRecipeNutrition(
-    recipeIngredients: List<com.ro.macrotracker.model.RecipeIngredient>,
-    ingredients: List<com.ro.macrotracker.model.Ingredient>
+    recipeIngredients: List<RecipeIngredient>,
+    ingredients: List<Ingredient>
 ): Nutrition {
 
     val input = recipeIngredients.mapNotNull { ri ->

@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
@@ -30,18 +29,14 @@ import com.ro.macrotracker.ui.components.IngredientItem
 import com.ro.macrotracker.ui.screens.*
 import com.ro.macrotracker.ui.theme.MacroTrackerTheme
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import com.ro.macrotracker.data.mappers.toDomain
-import com.ro.macrotracker.model.Recipe
+import com.ro.macrotracker.ui.components.RecipeItem
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +56,7 @@ class MainActivity : ComponentActivity() {
             )
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("planner", 0) }
+
             var showWelcomeDialog by remember {
                 mutableStateOf(prefs.getBoolean("isFirstRun", true))
             }
@@ -73,250 +69,81 @@ class MainActivity : ComponentActivity() {
             val ingredients by mainViewModel.ingredients.collectAsState()
             val recipes by mainViewModel.recipes.collectAsState()
             val allRI by mainViewModel.allRecipeIngredients.collectAsState()
+            val selectedDate by mainViewModel.selectedDate.collectAsState()
 
             var ingredientToDelete by remember { mutableStateOf<com.ro.macrotracker.model.Ingredient?>(null) }
             val scope = rememberCoroutineScope()
 
-            val selectedDate by mainViewModel.selectedDate.collectAsState()
-
             MacroTrackerTheme {
                 if (showWelcomeDialog) {
-                    AlertDialog(
-                        onDismissRequest = { },
-                        title = { Text("Welcome to MacroTracker!") },
-                        text = {
-                            val dialogFocusManager = LocalFocusManager.current
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .pointerInput(Unit) {
-                                        detectTapGestures(onTap = {
-                                            dialogFocusManager.clearFocus()
-                                        })
-                                    }
-                            ) {
-                                Text("Let's set your daily calorie goal to personalize your experience.")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Box(Modifier.focusable())
-                                OutlinedTextField(
-                                    value = tempTargetCalories,
-                                    onValueChange = { tempTargetCalories = it },
-                                    label = { Text("Daily Calories Target") },
-                                    keyboardOptions = KeyboardOptions(
-                                        keyboardType = KeyboardType.Number,
-                                        imeAction = ImeAction.Done
-                                    ),
-                                    keyboardActions = KeyboardActions(
-                                        onDone = { dialogFocusManager.clearFocus() }
-                                    ),
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (tempTargetCalories.isNotEmpty()) {
-                                        prefs.edit()
-                                            .putBoolean("isFirstRun", false)
-                                            .putString("targetCalories", tempTargetCalories)
-                                            .apply()
-                                        showWelcomeDialog = false
-                                    }
-                                },
-                                enabled = tempTargetCalories.isNotEmpty()
-                            ) {
-                                Text("Get Started")
+                    WelcomeGoalDialog(
+                        tempValue = tempTargetCalories,
+                        onValueChange = { tempTargetCalories = it },
+                        onConfirm = {
+                            if (tempTargetCalories.isNotEmpty()) {
+                                prefs.edit()
+                                    .putBoolean("isFirstRun", false)
+                                    .putString("targetCalories", tempTargetCalories)
+                                    .apply()
+                                showWelcomeDialog = false
                             }
                         }
                     )
                 }
+
                 Scaffold(
                     modifier = Modifier.fillMaxSize(),
                     topBar = {
-                        TopAppBar(
-                            title = {
-                                Text(when(currentScreen) {
-                                    Screen.RECIPES -> "Recipes"
-                                    Screen.INGREDIENTS -> "Ingredients"
-                                    Screen.PLANNER -> "Daily Planner"
-                                    Screen.ADD_RECIPE -> "Add Recipe"
-                                    Screen.ADD_INGREDIENT -> "Add Ingredient"
-                                    Screen.RECIPE_DETAIL -> selectedRecipe?.name ?: "Detail"
-                                    Screen.ADJUST_MEAL -> "Adjust Meal"
-                                })
-                            },
-                            navigationIcon = {
-                                if (currentScreen != Screen.RECIPES &&
-                                    currentScreen != Screen.INGREDIENTS &&
-                                    currentScreen != Screen.PLANNER) {
-                                    TextButton(onClick = { mainViewModel.goBack() }) {
-                                        Text("Back")
-                                    }
-                                }
-                            }
+                        MainTopAppBar(
+                            currentScreen = currentScreen,
+                            selectedRecipeName = selectedRecipe?.name,
+                            onBack = { mainViewModel.goBack() }
                         )
                     },
                     bottomBar = {
-                        NavigationBar {
-                            NavigationBarItem(
-                                selected = currentScreen == Screen.RECIPES,
-                                onClick = { mainViewModel.navigateTo(Screen.RECIPES) },
-                                label = { Text("Recipes") },
-                                icon = { Text("🍽️") }
-                            )
-                            NavigationBarItem(
-                                selected = currentScreen == Screen.INGREDIENTS,
-                                onClick = { mainViewModel.navigateTo(Screen.INGREDIENTS) },
-                                label = { Text("Ingredients") },
-                                icon = { Text("🥦") }
-                            )
-                            NavigationBarItem(
-                                selected = currentScreen == Screen.PLANNER,
-                                onClick = { mainViewModel.navigateTo(Screen.PLANNER) },
-                                label = { Text("Planner") },
-                                icon = { Text("📊") }
-                            )
-                        }
+                        MainNavigationBar(
+                            currentScreen = currentScreen,
+                            onNavigate = { mainViewModel.navigateTo(it) }
+                        )
                     },
                     floatingActionButton = {
-                        when (currentScreen) {
-                            Screen.RECIPES -> FloatingActionButton(onClick = { mainViewModel.navigateTo(Screen.ADD_RECIPE) }) {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                            }
-                            Screen.INGREDIENTS -> FloatingActionButton(onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT) }) {
-                                Icon(Icons.Default.Add, contentDescription = null)
-                            }
-                            else -> {}
-                        }
+                        MainFloatingActionButton(
+                            currentScreen = currentScreen,
+                            onAddRecipe = { mainViewModel.navigateTo(Screen.ADD_RECIPE) },
+                            onAddIngredient = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT) }
+                        )
                     }
                 ) { innerPadding ->
                     Box(modifier = Modifier.padding(innerPadding)) {
                         when (currentScreen) {
                             Screen.RECIPES -> {
-                                val recipeSearchQuery by mainViewModel.recipeSearchQuery.collectAsState()
-                                val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
-
-                                val focusManager = LocalFocusManager.current
-                                val keyboardController = LocalSoftwareKeyboardController.current
-
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onTap = {
-                                                focusManager.clearFocus()
-                                                keyboardController?.hide()
-                                            })
-                                        }
-                                ) {
-                                    OutlinedTextField(
-                                        value = recipeSearchQuery,
-                                        onValueChange = { mainViewModel.onRecipeSearchQueryChange(it) },
-                                        modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                        placeholder = { Text("Search recipes...") },
-                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                        trailingIcon = {
-                                            if (recipeSearchQuery.isNotEmpty()) {
-                                                IconButton(onClick = { mainViewModel.onRecipeSearchQueryChange("") }) {
-                                                    Icon(Icons.Default.Clear, contentDescription = null)
-                                                }
-                                            }
-                                        },
-                                        shape = MaterialTheme.shapes.medium,
-                                        singleLine = true,
-                                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                                        keyboardActions = KeyboardActions(onSearch = {
-                                            focusManager.clearFocus()
-                                            keyboardController?.hide()
-                                        })
-                                    )
-
-                                    LazyColumn(modifier = Modifier.weight(1f)) {
-                                        items(filteredRecipes) { recipe ->
-
-                                            val recipeIngredients = allRI.filter { it.recipeId == recipe.id }
-
-                                            val nutrition = com.ro.macrotracker.domain.calculateRecipeNutrition(
-                                                recipeIngredients,
-                                                ingredients
-                                            )
-
-                                            com.ro.macrotracker.ui.components.RecipeItem(
-                                                recipe = recipe,
-                                                nutrition = nutrition,
-                                                onClick = { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
-                                            )
-                                        }
-                                    }
-                                }
+                                RecipesListContent(
+                                    mainViewModel = mainViewModel,
+                                    recipes = recipes,
+                                    allRI = allRI,
+                                    ingredients = ingredients
+                                )
                             }
                             Screen.INGREDIENTS -> {
-                                val searchQuery by mainViewModel.ingredientSearchQuery.collectAsState()
-                                val filteredIngredients by mainViewModel.filteredIngredients.collectAsState()
-
-                                val focusManager = LocalFocusManager.current
-                                val keyboardController = LocalSoftwareKeyboardController.current
-
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .pointerInput(Unit) {
-                                            detectTapGestures(onTap = {
-                                                focusManager.clearFocus()
-                                                keyboardController?.hide()
-                                            })
-                                        }
-                                ) {
-                                    OutlinedTextField(
-                                        value = searchQuery,
-                                        onValueChange = { mainViewModel.onIngredientSearchQueryChange(it) },
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        placeholder = { Text("Search ingredients...") },
-                                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-                                        trailingIcon = {
-                                            if (searchQuery.isNotEmpty()) {
-                                                IconButton(onClick = { mainViewModel.onIngredientSearchQueryChange("") }) {
-                                                    Icon(Icons.Default.Clear, contentDescription = null)
-                                                }
+                                IngredientsListContent(
+                                    mainViewModel = mainViewModel,
+                                    onDeleteRequest = { ingredient ->
+                                        scope.launch {
+                                            val count = mainViewModel.getUsageCount(ingredient.id)
+                                            if (count > 0) {
+                                                Toast.makeText(context, "In use by $count recipes", Toast.LENGTH_SHORT).show()
+                                            } else {
+                                                ingredientToDelete = ingredient
                                             }
-                                        },
-                                        shape = MaterialTheme.shapes.medium,
-                                        singleLine = true
-                                    )
-
-                                    LazyColumn(modifier = Modifier.weight(1f)) {
-                                        items(filteredIngredients) { ingredient ->
-                                            IngredientItem(
-                                                ingredient = ingredient,
-                                                onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT, ingredient = ingredient) },
-                                                onDelete = {
-                                                    scope.launch {
-                                                        val count = mainViewModel.getUsageCount(ingredient.id)
-                                                        if (count > 0) {
-                                                            Toast.makeText(context, "In use by $count recipes", Toast.LENGTH_SHORT).show()
-                                                        } else {
-                                                            ingredientToDelete = ingredient
-                                                        }
-                                                    }
-                                                }
-                                            )
                                         }
                                     }
-                                }
+                                )
                             }
                             Screen.ADD_RECIPE -> {
                                 AddRecipeScreen(
                                     allIngredients = ingredients,
                                     onSave = { name, imageUri, selectedIngredientsList ->
-                                        mainViewModel.saveFullRecipe(
-                                            name = name,
-                                            imageUri = imageUri,
-                                            items = selectedIngredientsList
-                                        )
+                                        mainViewModel.saveFullRecipe(name, imageUri, selectedIngredientsList)
                                         mainViewModel.navigateTo(Screen.RECIPES)
                                     },
                                     onCancel = { mainViewModel.navigateTo(Screen.RECIPES) }
@@ -356,42 +183,7 @@ class MainActivity : ComponentActivity() {
                             }
                             Screen.ADJUST_MEAL -> {
                                 selectedRecipe?.let { recipeModel ->
-                                    val recipeIngredients by mainViewModel.allRecipeIngredients.collectAsState()
-                                    val allEntities by mainViewModel.ingredients.collectAsState()
-
-                                    val initialItems = recipeIngredients
-                                        .filter { it.recipeId == recipeModel.id }
-                                        .mapNotNull { ri ->
-                                            val entity = allEntities.find { it.id == ri.ingredientId }
-                                            if (entity != null) {
-                                                val modelIng = com.ro.macrotracker.model.Ingredient(
-                                                    id = entity.id,
-                                                    name = entity.name,
-                                                    caloriesPer100 = entity.caloriesPer100,
-                                                    proteinPer100 = entity.proteinPer100,
-                                                    carbsPer100 = entity.carbsPer100,
-                                                    fatPer100 = entity.fatPer100,
-                                                    fiberPer100 = entity.fiberPer100,
-                                                    unit = entity.unit,
-                                                    imageUri = entity.imageUri
-                                                )
-                                                modelIng to ri.amount
-                                            } else null
-                                        }
-
-                                    AdjustMealScreen(
-                                        recipe = recipeModel,
-                                        initialIngredients = initialItems,
-                                        onConfirm = { adjustedItems ->
-                                            mainViewModel.saveMealToPlanner(
-                                                recipeId = recipeModel.id,
-                                                items = adjustedItems,
-                                                date = selectedDate
-                                            )
-                                            mainViewModel.navigateTo(Screen.PLANNER)
-                                        },
-                                        onCancel = { mainViewModel.goBack() }
-                                    )
+                                    AdjustMealScreenContent(recipeModel, mainViewModel, selectedDate)
                                 }
                             }
                         }
@@ -411,4 +203,215 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+}
+
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MainTopAppBar(currentScreen: Screen, selectedRecipeName: String?, onBack: () -> Unit) {
+    TopAppBar(
+        title = {
+            Text(when(currentScreen) {
+                Screen.RECIPES -> "Recipes"
+                Screen.INGREDIENTS -> "Ingredients"
+                Screen.PLANNER -> "Daily Planner"
+                Screen.ADD_RECIPE -> "Add Recipe"
+                Screen.ADD_INGREDIENT -> "Add Ingredient"
+                Screen.RECIPE_DETAIL -> selectedRecipeName ?: "Detail"
+                Screen.ADJUST_MEAL -> "Adjust Meal"
+            })
+        },
+        navigationIcon = {
+            if (currentScreen !in listOf(Screen.RECIPES, Screen.INGREDIENTS, Screen.PLANNER)) {
+                TextButton(onClick = onBack) { Text("Back") }
+            }
+        }
+    )
+}
+
+@Composable
+fun MainNavigationBar(currentScreen: Screen, onNavigate: (Screen) -> Unit) {
+    NavigationBar {
+        NavigationBarItem(
+            selected = currentScreen == Screen.RECIPES,
+            onClick = { onNavigate(Screen.RECIPES) },
+            label = { Text("Recipes") },
+            icon = { Text("🍽️") }
+        )
+        NavigationBarItem(
+            selected = currentScreen == Screen.INGREDIENTS,
+            onClick = { onNavigate(Screen.INGREDIENTS) },
+            label = { Text("Ingredients") },
+            icon = { Text("🥦") }
+        )
+        NavigationBarItem(
+            selected = currentScreen == Screen.PLANNER,
+            onClick = { onNavigate(Screen.PLANNER) },
+            label = { Text("Planner") },
+            icon = { Text("📊") }
+        )
+    }
+}
+
+@Composable
+fun MainFloatingActionButton(currentScreen: Screen, onAddRecipe: () -> Unit, onAddIngredient: () -> Unit) {
+    when (currentScreen) {
+        Screen.RECIPES -> FloatingActionButton(onClick = onAddRecipe) {
+            Icon(Icons.Default.Add, contentDescription = null)
+        }
+        Screen.INGREDIENTS -> FloatingActionButton(onClick = onAddIngredient) {
+            Icon(Icons.Default.Add, contentDescription = null)
+        }
+        else -> {}
+    }
+}
+
+@Composable
+fun RecipesListContent(
+    mainViewModel: MainViewModel,
+    recipes: List<com.ro.macrotracker.model.Recipe>,
+    allRI: List<com.ro.macrotracker.model.RecipeIngredient>,
+    ingredients: List<com.ro.macrotracker.model.Ingredient>
+) {
+    val recipeSearchQuery by mainViewModel.recipeSearchQuery.collectAsState()
+    val filteredRecipes by mainViewModel.filteredRecipes.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                    keyboardController?.hide()
+                })
+            }
+    ) {
+        OutlinedTextField(
+            value = recipeSearchQuery,
+            onValueChange = { mainViewModel.onRecipeSearchQueryChange(it) },
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            placeholder = { Text("Search recipes...") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            trailingIcon = {
+                if (recipeSearchQuery.isNotEmpty()) {
+                    IconButton(onClick = { mainViewModel.onRecipeSearchQueryChange("") }) {
+                        Icon(Icons.Default.Clear, null)
+                    }
+                }
+            },
+            shape = MaterialTheme.shapes.medium,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+            keyboardActions = KeyboardActions(onSearch = {
+                focusManager.clearFocus()
+                keyboardController?.hide()
+            })
+        )
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(filteredRecipes) { recipe ->
+                // Cálculo de nutrición delegado al dominio
+                val recipeIngredients = allRI.filter { it.recipeId == recipe.id }
+                val nutrition = com.ro.macrotracker.domain.calculateRecipeNutrition(
+                    recipeIngredients,
+                    ingredients
+                )
+
+                RecipeItem(
+                    recipe = recipe,
+                    nutrition = nutrition,
+                    onClick = { mainViewModel.navigateTo(Screen.RECIPE_DETAIL, recipe = recipe) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun IngredientsListContent(
+    mainViewModel: MainViewModel,
+    onDeleteRequest: (com.ro.macrotracker.model.Ingredient) -> Unit
+) {
+    val searchQuery by mainViewModel.ingredientSearchQuery.collectAsState()
+    val filteredIngredients by mainViewModel.filteredIngredients.collectAsState()
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+
+    Column(modifier = Modifier.fillMaxSize().pointerInput(Unit) {
+        detectTapGestures(onTap = { focusManager.clearFocus(); keyboardController?.hide() })
+    }) {
+        OutlinedTextField(
+            value = searchQuery,
+            onValueChange = { mainViewModel.onIngredientSearchQueryChange(it) },
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            placeholder = { Text("Search ingredients...") },
+            leadingIcon = { Icon(Icons.Default.Search, null) },
+            shape = MaterialTheme.shapes.medium,
+            singleLine = true
+        )
+
+        LazyColumn(modifier = Modifier.weight(1f)) {
+            items(filteredIngredients) { ingredient ->
+                IngredientItem(
+                    ingredient = ingredient,
+                    onClick = { mainViewModel.navigateTo(Screen.ADD_INGREDIENT, ingredient = ingredient) },
+                    onDelete = { onDeleteRequest(ingredient) }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AdjustMealScreenContent(recipe: com.ro.macrotracker.model.Recipe, mainViewModel: MainViewModel, selectedDate: Long) {
+    val recipeIngredients by mainViewModel.allRecipeIngredients.collectAsState()
+    val allEntities by mainViewModel.ingredients.collectAsState()
+
+    val initialItems = recipeIngredients
+        .filter { it.recipeId == recipe.id }
+        .mapNotNull { ri ->
+            val entity = allEntities.find { it.id == ri.ingredientId }
+            entity?.let { it to ri.amount }
+        }
+
+    AdjustMealScreen(
+        recipe = recipe,
+        initialIngredients = initialItems,
+        onConfirm = { adjustedItems ->
+            mainViewModel.saveMealToPlanner(recipe.id, adjustedItems, selectedDate)
+            mainViewModel.navigateTo(Screen.PLANNER)
+        },
+        onCancel = { mainViewModel.goBack() }
+    )
+}
+
+@Composable
+fun WelcomeGoalDialog(tempValue: String, onValueChange: (String) -> Unit, onConfirm: () -> Unit) {
+    val dialogFocusManager = LocalFocusManager.current
+    AlertDialog(
+        onDismissRequest = { },
+        title = { Text("Welcome to MacroTracker!") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth().pointerInput(Unit) { detectTapGestures(onTap = { dialogFocusManager.clearFocus() }) }) {
+                Text("Let's set your daily calorie goal.")
+                Spacer(modifier = Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = tempValue,
+                    onValueChange = onValueChange,
+                    label = { Text("Daily Calories Target") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
+                    keyboardActions = KeyboardActions(onDone = { dialogFocusManager.clearFocus() }),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = onConfirm, enabled = tempValue.isNotEmpty()) {
+                Text("Get Started")
+            }
+        }
+    )
 }

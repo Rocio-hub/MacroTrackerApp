@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -32,8 +31,6 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
-import com.ro.macrotracker.model.RecipeIngredient
-import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
 import com.ro.macrotracker.utils.format
 

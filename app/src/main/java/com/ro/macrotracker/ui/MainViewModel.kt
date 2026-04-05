@@ -90,7 +90,7 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     fun saveFullRecipe(name: String, imageUri: String?, items: List<Pair<Ingredient, Double>>) {
         viewModelScope.launch {
             val recipe = Recipe(name = name, imageUri = imageUri)
-            val recipeId = repository.insertRecipe(recipe).toInt() // 👈 Necesitas que insertRecipe devuelva Long
+            val recipeId = repository.insertRecipe(recipe).toInt()
 
             val modelsToSave = items.map { (modelIng, amount) ->
                 RecipeIngredient(
@@ -105,7 +105,7 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
         }
     }
 
-    val allRecipeIngredients: StateFlow<List<com.ro.macrotracker.model.RecipeIngredient>> =
+    val allRecipeIngredients: StateFlow<List<RecipeIngredient>> =
         repository.getAllRecipeIngredients()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 

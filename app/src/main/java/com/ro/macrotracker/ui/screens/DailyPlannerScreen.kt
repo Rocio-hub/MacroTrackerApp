@@ -1,11 +1,9 @@
 package com.ro.macrotracker.ui.screens
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -18,11 +16,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -34,17 +30,15 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.RecipeIngredient
 import com.ro.macrotracker.domain.calculateRecipeNutrition
-import com.ro.macrotracker.ui.viewmodel.DailyPlannerViewModel
+import com.ro.macrotracker.ui.DailyPlannerViewModel
 import com.ro.macrotracker.utils.format
 import java.text.SimpleDateFormat
 import java.util.*
 import com.ro.macrotracker.utils.*
-import androidx.compose.ui.unit.sp
 import com.ro.macrotracker.ui.components.RecipeItem
 
 @Composable
@@ -104,7 +98,6 @@ fun DailyPlannerScreen(
         targetCalories = prefs.getString("targetCalories", "") ?: ""
     }
 
-    @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     fun DateSelector(
         selectedDate: Long,
@@ -412,32 +405,6 @@ fun DailyPlannerScreen(
 }
 
 @Composable
-fun MacroBadgeSmall(label: String, value: Double, color: Color) {
-    Surface(
-        color = color.copy(alpha = 0.15f),
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-            Text(
-                text = "${value.format()}g",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}
-
-@Composable
 fun MacroSummaryItem(label: String, value: Double, color: Color) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -464,34 +431,6 @@ fun MacroSummaryItem(label: String, value: Double, color: Color) {
             fontWeight = FontWeight.ExtraBold,
             maxLines = 1
         )
-    }
-}
-
-
-@Composable
-fun MacroBadge(label: String, value: Double, color: Color) {
-    Surface(
-        color = color,
-        shape = MaterialTheme.shapes.small,
-        modifier = Modifier.padding(vertical = 2.dp)
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = "${value.format()}g",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
     }
 }
 

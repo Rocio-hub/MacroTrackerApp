@@ -110,29 +110,3 @@ fun IngredientItem(
         }
     }
 }
-
-@Composable
-fun MacroBadgeSmall(label: String, value: Double, color: Color) {
-    Surface(
-        color = color.copy(alpha = 0.15f),
-        shape = MaterialTheme.shapes.small,
-    ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                fontWeight = FontWeight.Bold,
-                color = color
-            )
-            Text(
-                text = "${value.format()}g",
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-    }
-}

@@ -16,6 +16,9 @@ lifecycleRuntimeCompose = "2.8.4"
 coilCompose = "2.6.0"
 materialIcons = "1.6.8"
 
+appVersionCode = "2"
+appVersionName = "1.1.0"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }

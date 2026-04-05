@@ -19,7 +19,7 @@ import com.ro.macrotracker.data.local.entity.RecipeIngredient
         DailyIngredientLog::class
     ],
     version = 8,
-    exportSchema = false
+    exportSchema = true
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun ingredientDao(): IngredientDao

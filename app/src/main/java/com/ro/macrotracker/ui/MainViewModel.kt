@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 
 class MainViewModel (private val repository: Repository) : ViewModel() {
 
-    private val _currentScreen = mutableStateOf(Screen.RECIPES)
+    private val _currentScreen = mutableStateOf(Screen.PLANNER)
     val currentScreen: State<Screen> = _currentScreen
 
     private val _selectedRecipe = mutableStateOf<Recipe?>(null)

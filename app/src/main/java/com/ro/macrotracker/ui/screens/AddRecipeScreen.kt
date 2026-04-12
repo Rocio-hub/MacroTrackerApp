@@ -67,6 +67,16 @@ fun AddRecipeScreen(
         onResult = { uri -> selectedImageUri = uri?.toString() }
     )
 
+    val amountsTextMap = remember { mutableStateMapOf<Int, String>() }
+
+    LaunchedEffect(selectedItems.size) {
+        selectedItems.forEach { (ing, amount) ->
+            if (!amountsTextMap.containsKey(ing.id)) {
+                amountsTextMap[ing.id] = amount.format()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -216,23 +226,30 @@ fun AddRecipeScreen(
                                 }
 
                                 OutlinedTextField(
-                                    value = if (amount == 0.0) "" else amount.toString(),
+                                    value = amountsTextMap[ing.id] ?: "",
                                     onValueChange = { newValue ->
-                                        val filtered = newValue.filter { it.isDigit() || it == '.' }
-                                        val index = selectedItems.indexOf(item)
-                                        if (index != -1) {
-                                            selectedItems[index] = ing to (filtered.toDoubleOrNull() ?: 0.0)
+                                        if (newValue.isEmpty() || newValue.toDoubleOrNull() != null || newValue.endsWith(".")) {
+                                            amountsTextMap[ing.id] = newValue // Actualizamos el texto visual
+
+                                            val doubleValue = newValue.toDoubleOrNull() ?: 0.0
+                                            val index = selectedItems.indexOfFirst { it.first.id == ing.id }
+                                            if (index != -1) {
+                                                selectedItems[index] = ing to doubleValue
+                                            }
                                         }
                                     },
                                     modifier = Modifier.width(85.dp),
                                     label = { Text(ing.unit, style = MaterialTheme.typography.labelSmall) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), // Decimal mejor que Number
                                     singleLine = true,
                                     textStyle = MaterialTheme.typography.bodySmall
                                 )
 
                                 IconButton(
-                                    onClick = { selectedItems.remove(item) },
+                                    onClick = {
+                                        amountsTextMap.remove(ing.id)
+                                        selectedItems.remove(item)
+                                    },
                                     modifier = Modifier.size(32.dp).padding(start = 4.dp)
                                 ) {
                                     Icon(

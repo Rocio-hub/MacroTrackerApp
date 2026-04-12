@@ -12,8 +12,9 @@ import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.utils.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import android.content.SharedPreferences
 
-class MainViewModel (private val repository: Repository) : ViewModel() {
+class MainViewModel (private val repository: Repository, private val prefs: SharedPreferences) : ViewModel() {
 
     private val _currentScreen = mutableStateOf(Screen.PLANNER)
     val currentScreen: State<Screen> = _currentScreen
@@ -29,6 +30,9 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
 
     private val _recipeSearchQuery = MutableStateFlow("")
     val recipeSearchQuery = _recipeSearchQuery.asStateFlow()
+
+    private val _globalTarget = MutableStateFlow("")
+    val globalTarget: StateFlow<String> = _globalTarget.asStateFlow()
 
     val ingredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -49,6 +53,15 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     val dailyLogs = _selectedDate.flatMapLatest { date ->
         repository.getLogsForDate(getStartOfDay(date), getEndOfDay(date))
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
+
+    init {
+        _globalTarget.value = prefs.getString("targetCalories", "") ?: ""
+    }
+
+    fun updateGlobalTarget(newTarget: String) {
+        _globalTarget.value = newTarget
+        prefs.edit().putString("targetCalories", newTarget).apply()
+    }
 
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
@@ -147,4 +160,5 @@ class MainViewModel (private val repository: Repository) : ViewModel() {
     fun onDateChange(newTimestamp: Long) {
         _selectedDate.value = newTimestamp
     }
+
 }

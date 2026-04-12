@@ -54,7 +54,7 @@ fun DailyPlannerScreen(
     val viewModel: DailyPlannerViewModel = viewModel()
 
     val totalNutrition = remember(dailyLogs, ingredients) {
-        var cals = 0.0
+        var cal = 0.0
         var prot = 0.0
         var carbs = 0.0
         var fat = 0.0
@@ -64,16 +64,17 @@ fun DailyPlannerScreen(
             val ing = ingredients.find { it.id == log.ingredientId }
             ing?.let {
                 val ratio = log.amount / 100.0
-                cals += it.caloriesPer100 * ratio
+                cal += it.caloriesPer100 * ratio
                 prot += it.proteinPer100 * ratio
                 carbs += it.carbsPer100 * ratio
                 fat += it.fatPer100 * ratio
                 fiber += it.fiberPer100 * ratio
             }
         }
-        com.ro.macrotracker.domain.Nutrition(calories = cals, protein = prot, carbs=carbs, fat=fat, fiber=fiber)
+        com.ro.macrotracker.domain.Nutrition(calories = cal, protein = prot, carbs=carbs, fat=fat, fiber=fiber)
     }
 
+    val globalTarget by mainViewModel.globalTarget.collectAsState()
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
     val searchQuery by viewModel.plannerSearchQuery.collectAsState()
@@ -93,9 +94,12 @@ fun DailyPlannerScreen(
 
     val selectedDate by mainViewModel.selectedDate.collectAsState()
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(selectedDate, globalTarget) {
         val prefs = context.getSharedPreferences("planner", 0)
-        targetCalories = prefs.getString("targetCalories", "") ?: ""
+        val dayKey = "target_${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(selectedDate))}"
+
+        val dailySpecific = prefs.getString(dayKey, null)
+        targetCalories = dailySpecific ?: globalTarget
     }
 
     @Composable
@@ -240,21 +244,6 @@ fun DailyPlannerScreen(
                 }
             )
         }
-
-        OutlinedTextField(
-            value = targetCalories,
-            onValueChange = {
-                targetCalories = it
-                context.getSharedPreferences("planner", 0).edit().putString("targetCalories", it).apply()
-            },
-            label = { Text("Daily Calories Target") },
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = {
-                keyboardController?.hide()
-                focusManager.clearFocus()
-            })
-        )
 
         Card(
             modifier = Modifier

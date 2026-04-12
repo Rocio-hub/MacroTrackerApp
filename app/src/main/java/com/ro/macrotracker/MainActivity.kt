@@ -50,12 +50,15 @@ class MainActivity : ComponentActivity() {
             dailyIngredientLogDao = db.dailyIngredientLogDao()
         )
 
+
+
         setContent {
-            val mainViewModel: MainViewModel = viewModel(
-                factory = MainViewModelFactory(repository)
-            )
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("planner", 0) }
+
+            val mainViewModel: MainViewModel = viewModel(
+                factory = MainViewModelFactory(repository, prefs)
+            )
 
             var showWelcomeDialog by remember {
                 mutableStateOf(prefs.getBoolean("isFirstRun", true))
@@ -81,10 +84,9 @@ class MainActivity : ComponentActivity() {
                         onValueChange = { tempTargetCalories = it },
                         onConfirm = {
                             if (tempTargetCalories.isNotEmpty()) {
-                                prefs.edit()
-                                    .putBoolean("isFirstRun", false)
-                                    .putString("targetCalories", tempTargetCalories)
-                                    .apply()
+                                mainViewModel.updateGlobalTarget(tempTargetCalories)
+
+                                prefs.edit().putBoolean("isFirstRun", false).apply()
                                 showWelcomeDialog = false
                             }
                         }

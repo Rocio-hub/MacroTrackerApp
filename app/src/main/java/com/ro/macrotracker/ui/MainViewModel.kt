@@ -34,6 +34,9 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     private val _globalTarget = MutableStateFlow("")
     val globalTarget: StateFlow<String> = _globalTarget.asStateFlow()
 
+    private val _proteinTarget = MutableStateFlow("")
+    val proteinTarget: StateFlow<String> = _proteinTarget.asStateFlow()
+
     val ingredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -55,12 +58,24 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
     init {
-        _globalTarget.value = prefs.getString("targetCalories", "") ?: ""
+        loadUserPreferences()
+    }
+
+    private fun loadUserPreferences() {
+        val savedCals = prefs.getString(Constants.KEY_GLOBAL_TARGET, "") ?: ""
+        val savedProtein = prefs.getString(Constants.KEY_PROTEIN_TARGET, "") ?: "" // 👈 Leer proteína
+        _globalTarget.value = savedCals
+        _proteinTarget.value = savedProtein
+    }
+
+    fun updateProteinTarget(newTarget: String) {
+        _proteinTarget.value = newTarget
+        prefs.edit().putString(Constants.KEY_PROTEIN_TARGET, newTarget).apply()
     }
 
     fun updateGlobalTarget(newTarget: String) {
         _globalTarget.value = newTarget
-        prefs.edit().putString("targetCalories", newTarget).apply()
+        prefs.edit().putString(Constants.KEY_GLOBAL_TARGET, newTarget).apply()
     }
 
     fun onIngredientSearchQueryChange(newQuery: String) {

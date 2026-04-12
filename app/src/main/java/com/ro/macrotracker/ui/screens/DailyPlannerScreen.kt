@@ -1,5 +1,6 @@
 package com.ro.macrotracker.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -54,15 +55,9 @@ fun DailyPlannerScreen(
     val viewModel: DailyPlannerViewModel = viewModel()
 
     val totalNutrition = remember(dailyLogs, ingredients) {
-        var cal = 0.0
-        var prot = 0.0
-        var carbs = 0.0
-        var fat = 0.0
-        var fiber = 0.0
-
+        var cal = 0.0; var prot = 0.0; var carbs = 0.0; var fat = 0.0; var fiber = 0.0
         dailyLogs.forEach { log ->
-            val ing = ingredients.find { it.id == log.ingredientId }
-            ing?.let {
+            ingredients.find { it.id == log.ingredientId }?.let {
                 val ratio = log.amount / 100.0
                 cal += it.caloriesPer100 * ratio
                 prot += it.proteinPer100 * ratio
@@ -75,6 +70,8 @@ fun DailyPlannerScreen(
     }
 
     val globalTarget by mainViewModel.globalTarget.collectAsState()
+    val globalProteinTarget by mainViewModel.proteinTarget.collectAsState()
+    var targetProtein by remember { mutableStateOf("") }
     var targetCalories by remember { mutableStateOf("") }
     val target = targetCalories.toDoubleOrNull() ?: 0.0
     val searchQuery by viewModel.plannerSearchQuery.collectAsState()
@@ -94,12 +91,20 @@ fun DailyPlannerScreen(
 
     val selectedDate by mainViewModel.selectedDate.collectAsState()
 
-    LaunchedEffect(selectedDate, globalTarget) {
-        val prefs = context.getSharedPreferences("planner", 0)
-        val dayKey = "target_${SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(selectedDate))}"
+    val proteinTargetStr by mainViewModel.proteinTarget.collectAsState()
+    val proteinTargetValue = proteinTargetStr.toDoubleOrNull() ?: 0.0
 
-        val dailySpecific = prefs.getString(dayKey, null)
-        targetCalories = dailySpecific ?: globalTarget
+    val targetProt = targetProtein.toDoubleOrNull() ?: 0.0
+    var showTargetDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(selectedDate, globalTarget, globalProteinTarget) {
+        val prefs = context.getSharedPreferences("planner", 0)
+        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(selectedDate))
+        val dayKey = "target_$dateStr"
+        val protKey = "prot_$dateStr"
+
+        targetCalories = prefs.getString(dayKey, null) ?: globalTarget
+        targetProtein = prefs.getString(protKey, null) ?: globalProteinTarget
     }
 
     @Composable
@@ -183,6 +188,7 @@ fun DailyPlannerScreen(
         val fmt = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
         return fmt.format(Date(date1)) == fmt.format(Date(date2))
     }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -196,51 +202,57 @@ fun DailyPlannerScreen(
 
         DateSelector(
             selectedDate = selectedDate,
-            onDateChange = { newDate ->
-                mainViewModel.onDateChange(newDate)
+            onDateChange = {
+                mainViewModel.onDateChange(it)
             }
         )
 
-        if (showDeleteDialog && recipeToDelete != null) {
+        if (showTargetDialog) {
             AlertDialog(
-                onDismissRequest = {
-                    showDeleteDialog = false
-                    recipeToDelete = null
-                },
-                title = { Text("Confirm Deletion") },
+                onDismissRequest = { showTargetDialog = false },
+                title = { Text("Daily Goals") },
                 text = {
-                    Text(
-                        text = buildAnnotatedString {
-                            append("Are you sure you want to remove ")
-                            withStyle(style = SpanStyle(fontWeight = FontWeight.Bold)) {
-                                append("${recipeToDelete?.name}")
-                            }
-                            append(" from your planner?")
-                        }
-                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        OutlinedTextField(
+                            value = targetCalories,
+                            onValueChange = { targetCalories = it },
+                            label = { Text("Calories Goal (kcal)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = targetProtein,
+                            onValueChange = { targetProtein = it },
+                            label = { Text("Protein Goal (g)") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true
+                        )
+                    }
                 },
                 confirmButton = {
-                    TextButton(
-                        onClick = {
-                            sessionIdToDelete?.let { sessionId ->
-                                mainViewModel.deleteMealBySession(sessionId)
-                            }
-                            showDeleteDialog = false
-                            recipeToDelete = null
-                            sessionIdToDelete = null
-                        },
-                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text("Delete")
-                    }
+                    Button(onClick = {
+                        val dateStr = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(selectedDate))
+                        context.getSharedPreferences("planner", 0).edit()
+                            .putString("target_$dateStr", targetCalories)
+                            .putString("prot_$dateStr", targetProtein)
+                            .apply()
+                        showTargetDialog = false
+                    }) { Text("Save") }
                 },
-                dismissButton = {
+                dismissButton = { TextButton(onClick = { showTargetDialog = false }) { Text("Cancel") } }
+            )
+        }
+
+        if (showDeleteDialog && recipeToDelete != null) {
+            AlertDialog(
+                onDismissRequest = { showDeleteDialog = false },
+                title = { Text("Confirm Deletion") },
+                text = { Text("Remove ${recipeToDelete?.name} from planner?") },
+                confirmButton = {
                     TextButton(onClick = {
+                        sessionIdToDelete?.let { mainViewModel.deleteMealBySession(it) }
                         showDeleteDialog = false
-                        recipeToDelete = null
-                    }) {
-                        Text("Cancel")
-                    }
+                    }) { Text("Delete", color = MaterialTheme.colorScheme.error) }
                 }
             )
         }
@@ -248,51 +260,40 @@ fun DailyPlannerScreen(
         Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 16.dp),
+                .padding(vertical = 16.dp)
+                .clickable { showTargetDialog = true },
             shape = MaterialTheme.shapes.extraLarge,
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
-            )
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
         ) {
-            Column(
-                modifier = Modifier.padding(20.dp)) {
-                Column {
-                    Text("Daily Progress", style = MaterialTheme.typography.labelMedium)
-                    Spacer(modifier = Modifier.height(12.dp))
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "${totalNutrition.calories.format()} / ${target.format()} kcal",
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.ExtraBold
-                        )
-                    }
+            Column(modifier = Modifier.padding(20.dp)) {
+                Text("Daily Progress", style = MaterialTheme.typography.labelMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Cals y Prot juntas en la cabecera
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+                    Text(
+                        text = "${totalNutrition.calories.format()} / ${target.format()} kcal",
+                        style = MaterialTheme.typography.headlineMedium,
+                        fontWeight = FontWeight.ExtraBold
+                    )
+                    Text(
+                        text = "Protein: ${totalNutrition.protein.format()} / ${targetProt.format()} g",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
 
                 LinearProgressIndicator(
                     progress = { if (target > 0) (totalNutrition.calories / target).toFloat().coerceAtMost(1f) else 0f },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(30.dp)
-                        .padding(vertical = 12.dp),
-                    strokeCap = StrokeCap.Round,
-                    color = MaterialTheme.colorScheme.primary,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    modifier = Modifier.fillMaxWidth().height(24.dp).padding(vertical = 8.dp),
+                    strokeCap = StrokeCap.Round
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    MacroSummaryItem("Fat", totalNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
-                    MacroSummaryItem("Carbs", totalNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
-                    MacroSummaryItem("Fiber", totalNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
-                    MacroSummaryItem("Protein", totalNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                    MacroSummaryItem("Fat", totalNutrition.fat, Color(0xFFFFB300))
+                    MacroSummaryItem("Carbs", totalNutrition.carbs, Color(0xFF42A5F5))
+                    MacroSummaryItem("Fiber", totalNutrition.fiber, Color(0xFF50C878))
+                    MacroSummaryItem("Protein", totalNutrition.protein, Color(0xFFEF5350))
                 }
             }
         }
@@ -370,7 +371,7 @@ fun DailyPlannerScreen(
                             MacroSummaryItem("Fat", mealNutrition.fat.coerceAtLeast(0.0), Color(0xFFFFB300))
                             MacroSummaryItem("Carbs", mealNutrition.carbs.coerceAtLeast(0.0), Color(0xFF42A5F5))
                             MacroSummaryItem("Fiber", mealNutrition.fiber.coerceAtLeast(0.0), Color(0xFF50C878))
-                            MacroSummaryItem("Protein", mealNutrition.protein.coerceAtLeast(0.0), Color(0xFFEF5350))
+                            MacroSummaryItem(label = "Protein", value = totalNutrition.protein, color = Color(0xFFEF5350))
                         }
                     }
                 }

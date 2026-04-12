@@ -1,5 +1,6 @@
 package com.ro.macrotracker.ui.screens
 
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +24,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -32,6 +34,9 @@ import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.ui.components.AddIngredientToRecipeDialog
 import com.ro.macrotracker.ui.components.MacroBadgeSmall
 import com.ro.macrotracker.utils.format
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @Composable
 fun AddRecipeScreen(
@@ -39,11 +44,43 @@ fun AddRecipeScreen(
     onSave: (String, String?, List<Pair<Ingredient, Double>>) -> Unit,
     onCancel: () -> Unit
 ) {
+    val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+
     var recipeName by remember { mutableStateOf("") }
     val selectedItems = remember { mutableStateListOf<Pair<Ingredient, Double>>() }
     var showDialog by remember { mutableStateOf(false) }
+    var showImageSourceDialog by remember { mutableStateOf(false) }
 
-    val focusManager = LocalFocusManager.current
+    var selectedImageUri by remember { mutableStateOf<String?>(null) }
+    var tempImageUri by remember { mutableStateOf<Uri?>(null) } // Declarado antes de los lanzadores
+
+    val amountsTextMap = remember { mutableStateMapOf<Int, String>() }
+
+    fun createImageUri(): Uri {
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val storageDir = context.getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES)
+        val file = java.io.File.createTempFile("JPEG_${timeStamp}_", ".jpg", storageDir)
+        return androidx.core.content.FileProvider.getUriForFile(
+            context,
+            "${context.packageName}.fileprovider",
+            file
+        )
+    }
+
+    val photoPickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia(),
+        onResult = { uri -> if (uri != null) selectedImageUri = uri.toString() }
+    )
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture(),
+        onResult = { success ->
+            if (success && tempImageUri != null) {
+                selectedImageUri = tempImageUri.toString()
+            }
+        }
+    )
 
     val nutrition = remember(selectedItems.toList()) {
         val calories = selectedItems.sumOf { (ing, amount) -> (ing.caloriesPer100 * amount) / 100 }
@@ -53,21 +90,9 @@ fun AddRecipeScreen(
         val fiber = selectedItems.sumOf { (ing, amount) -> (ing.fiberPer100 * amount) / 100 }
 
         object {
-            val kcal = calories
-            val p = protein
-            val c = carbs
-            val f = fat
-            val fi = fiber
+            val kcal = calories; val p = protein; val c = carbs; val f = fat; val fi = fiber
         }
     }
-
-    var selectedImageUri by remember { mutableStateOf<String?>(null) }
-    val photoPickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.PickVisualMedia(),
-        onResult = { uri -> selectedImageUri = uri?.toString() }
-    )
-
-    val amountsTextMap = remember { mutableStateMapOf<Int, String>() }
 
     LaunchedEffect(selectedItems.size) {
         selectedItems.forEach { (ing, amount) ->
@@ -75,6 +100,30 @@ fun AddRecipeScreen(
                 amountsTextMap[ing.id] = amount.format()
             }
         }
+    }
+
+    if (showImageSourceDialog) {
+        AlertDialog(
+            onDismissRequest = { showImageSourceDialog = false },
+            title = { Text("Select Photo Source") },
+            text = { Text("How do you want to add the recipe photo?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    val uri = createImageUri()
+                    tempImageUri = uri
+                    cameraLauncher.launch(uri)
+                    showImageSourceDialog = false
+                }) { Text("Camera") }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    photoPickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                    showImageSourceDialog = false
+                }) { Text("Gallery") }
+            }
+        )
     }
 
     Column(
@@ -88,9 +137,7 @@ fun AddRecipeScreen(
         ) {
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
+                    modifier = Modifier.fillMaxWidth().padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -99,11 +146,7 @@ fun AddRecipeScreen(
                             .size(72.dp)
                             .clip(CircleShape)
                             .background(MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f))
-                            .clickable {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
+                            .clickable { showImageSourceDialog = true },
                         contentAlignment = Alignment.Center
                     ) {
                         if (selectedImageUri != null) {
@@ -131,12 +174,8 @@ fun AddRecipeScreen(
 
             item {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Row(
@@ -155,9 +194,7 @@ fun AddRecipeScreen(
 
             item {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -173,32 +210,17 @@ fun AddRecipeScreen(
                 val factor = amount / 100.0
 
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
-                    ),
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)),
                     shape = MaterialTheme.shapes.medium
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp).fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
+                    Row(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Box(
-                            modifier = Modifier
-                                .size(54.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.size(54.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surfaceVariant),
                             contentAlignment = Alignment.Center
                         ) {
                             if (!ing.imageUri.isNullOrBlank()) {
-                                AsyncImage(
-                                    model = ing.imageUri,
-                                    contentDescription = null,
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                                AsyncImage(model = ing.imageUri, contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                             } else {
                                 Text("🥦", style = MaterialTheme.typography.headlineSmall)
                             }
@@ -207,30 +229,17 @@ fun AddRecipeScreen(
                         Spacer(modifier = Modifier.width(12.dp))
 
                         Column(modifier = Modifier.weight(1f)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = ing.name,
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.Bold,
-                                        maxLines = 1
-                                    )
-                                    Text(
-                                        text = "${(ing.caloriesPer100 * factor).format()} kcal total",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
-                                    )
+                                    Text(text = ing.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, maxLines = 1)
+                                    Text(text = "${(ing.caloriesPer100 * factor).format()} kcal total", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f))
                                 }
 
                                 OutlinedTextField(
                                     value = amountsTextMap[ing.id] ?: "",
                                     onValueChange = { newValue ->
                                         if (newValue.isEmpty() || newValue.toDoubleOrNull() != null || newValue.endsWith(".")) {
-                                            amountsTextMap[ing.id] = newValue // Actualizamos el texto visual
-
+                                            amountsTextMap[ing.id] = newValue
                                             val doubleValue = newValue.toDoubleOrNull() ?: 0.0
                                             val index = selectedItems.indexOfFirst { it.first.id == ing.id }
                                             if (index != -1) {
@@ -240,33 +249,19 @@ fun AddRecipeScreen(
                                     },
                                     modifier = Modifier.width(85.dp),
                                     label = { Text(ing.unit, style = MaterialTheme.typography.labelSmall) },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal), // Decimal mejor que Number
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                     singleLine = true,
                                     textStyle = MaterialTheme.typography.bodySmall
                                 )
 
-                                IconButton(
-                                    onClick = {
-                                        amountsTextMap.remove(ing.id)
-                                        selectedItems.remove(item)
-                                    },
-                                    modifier = Modifier.size(32.dp).padding(start = 4.dp)
-                                ) {
-                                    Icon(
-                                        Icons.Default.Delete,
-                                        null,
-                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
+                                IconButton(onClick = { amountsTextMap.remove(ing.id); selectedItems.remove(item) }, modifier = Modifier.size(32.dp).padding(start = 4.dp)) {
+                                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error.copy(alpha = 0.6f), modifier = Modifier.size(20.dp))
                                 }
                             }
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
+                            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                 MacroBadgeSmall("Fat", ing.fatPer100 * factor, Color(0xFFFFB300))
                                 MacroBadgeSmall("Carbs", ing.carbsPer100 * factor, Color(0xFF42A5F5))
                                 MacroBadgeSmall("Fiber", ing.fiberPer100 * factor, Color(0xFF50C878))
@@ -278,22 +273,13 @@ fun AddRecipeScreen(
             }
         }
 
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-                Text("Cancel")
-            }
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
             Button(
                 onClick = { onSave(recipeName, selectedImageUri, selectedItems.toList()) },
                 modifier = Modifier.weight(1f),
                 enabled = recipeName.isNotBlank() && selectedItems.isNotEmpty()
-            ) {
-                Text("Save")
-            }
+            ) { Text("Save") }
         }
     }
 

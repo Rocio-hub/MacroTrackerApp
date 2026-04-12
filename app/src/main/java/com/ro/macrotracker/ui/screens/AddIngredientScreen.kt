@@ -44,20 +44,24 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.ro.macrotracker.model.Ingredient
+import com.ro.macrotracker.utils.format
 
 @Composable
 fun AddIngredientScreen(
-    ingredient: Ingredient? = null,
+    ingredient: Ingredient?,
     onSave: (Ingredient) -> Unit,
     onCancel: () -> Unit
 ) {
     var name by remember { mutableStateOf(ingredient?.name ?: "") }
-    var calories by remember { mutableStateOf(ingredient?.caloriesPer100?.toString() ?: "") }
-    var protein by remember { mutableStateOf(ingredient?.proteinPer100?.toString() ?: "") }
-    var carbs by remember { mutableStateOf(ingredient?.carbsPer100?.toString() ?: "") }
-    var fat by remember { mutableStateOf(ingredient?.fatPer100?.toString() ?: "") }
-    var fiber by remember { mutableStateOf(ingredient?.fiberPer100?.toString() ?: "") }
     var unit by remember { mutableStateOf(ingredient?.unit ?: "g") }
+
+    var calories by remember { mutableStateOf(ingredient?.caloriesPer100?.format() ?: "") }
+    var protein by remember { mutableStateOf(ingredient?.proteinPer100?.format() ?: "") }
+    var carbs by remember { mutableStateOf(ingredient?.carbsPer100?.format() ?: "") }
+    var fat by remember { mutableStateOf(ingredient?.fatPer100?.format() ?: "") }
+    var fiber by remember { mutableStateOf(ingredient?.fiberPer100?.format() ?: "") }
+
+    val focusManager = LocalFocusManager.current
 
     var selectedImageUri by remember { mutableStateOf(ingredient?.imageUri) }
 
@@ -68,25 +72,50 @@ fun AddIngredientScreen(
         }
     )
 
-    val focusManager = LocalFocusManager.current
+    @Composable
+    fun NutrientField(
+        value: String,
+        onValueChange: (String) -> Unit,
+        label: String,
+        focusedColor: Color,
+        imeAction: ImeAction = ImeAction.Next
+    ) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = { newValue ->
+                if (newValue.isEmpty() || newValue.toDoubleOrNull() != null || newValue.endsWith(".")) {
+                    onValueChange(newValue)
+                }
+            },
+            label = { Text(label) },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            maxLines = 1,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = KeyboardType.Decimal,
+                imeAction = imeAction
+            ),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = focusedColor.copy(alpha = 0.1f),
+                unfocusedContainerColor = focusedColor.copy(alpha = 0.05f),
+                focusedBorderColor = focusedColor,
+                focusedLabelColor = focusedColor,
+                cursorColor = focusedColor
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+    }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 20.dp)
-            .pointerInput(Unit) {
-                detectTapGestures(onTap = {
-                    focusManager.clearFocus()
-                })
-            }
+            .padding(16.dp)
+            .pointerInput(Unit) { detectTapGestures(onTap = { focusManager.clearFocus() }) }
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
@@ -105,17 +134,12 @@ fun AddIngredientScreen(
                 if (selectedImageUri != null) {
                     AsyncImage(
                         model = selectedImageUri,
-                        contentDescription = "Ingredient Photo",
+                        contentDescription = null,
                         modifier = Modifier.fillMaxSize(),
                         contentScale = ContentScale.Crop
                     )
                 } else {
-                    Icon(
-                        imageVector = Icons.Default.AddAPhoto,
-                        contentDescription = null,
-                        modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                    )
+                    Icon(Icons.Default.AddAPhoto, null, modifier = Modifier.size(28.dp), tint = MaterialTheme.colorScheme.primary)
                 }
             }
 
@@ -125,151 +149,52 @@ fun AddIngredientScreen(
                 label = { Text("Name") },
                 modifier = Modifier.weight(1f),
                 singleLine = true,
+                maxLines = 1,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
         }
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp, alignment = Alignment.CenterHorizontally),
-            verticalAlignment = Alignment.CenterVertically
+            horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterHorizontally)
         ) {
-            Button(
-                onClick = { unit = "g" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (unit == "g") MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (unit == "g") MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            ) {
-                Text("g")
-            }
-
-            Button(
-                onClick = { unit = "ml" },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = if (unit == "ml") MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = if (unit == "ml") MaterialTheme.colorScheme.onPrimary
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            ) {
-                Text("ml")
+            listOf("g", "ml").forEach { option ->
+                Button(
+                    onClick = { unit = option },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (unit == option) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (unit == option) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) { Text(option) }
             }
         }
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp), color = MaterialTheme.colorScheme.surfaceVariant)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
         Text(
             text = "Nutritional values per 100 $unit",
             style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(vertical = 8.dp)
+            color = MaterialTheme.colorScheme.primary
         )
-        Spacer(modifier = Modifier.height(8.dp))
-
-        OutlinedTextField(
-            value = calories,
-            onValueChange = { calories = it },
-            label = { Text("Calories") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                focusedBorderColor = MaterialTheme.colorScheme.primary
-            ),
-            modifier = Modifier.fillMaxWidth()
-        )
-
         Spacer(modifier = Modifier.height(12.dp))
 
-        OutlinedTextField(
-            value = protein,
-            onValueChange = { protein = it },
-            label = { Text("Protein") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFEF5350).copy(alpha = 0.2f),
-                unfocusedContainerColor = Color(0xFFEF5350).copy(alpha = 0.1f),
-                focusedBorderColor = Color(0xFFEF5350),
-                focusedLabelColor = Color(0xFFEF5350),
-                cursorColor = Color(0xFFEF5350)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = carbs,
-            onValueChange = { carbs = it },
-            label = { Text("Carbs") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF42A5F5).copy(alpha = 0.2f),
-                unfocusedContainerColor = Color(0xFF42A5F5).copy(alpha = 0.1f),
-                focusedBorderColor = Color(0xFF42A5F5),
-                focusedLabelColor = Color(0xFF42A5F5),
-                cursorColor = Color(0xFF42A5F5)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = fat,
-            onValueChange = { fat = it },
-            label = { Text("Fat") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFFFFB300).copy(alpha = 0.2f),
-                unfocusedContainerColor = Color(0xFFFFB300).copy(alpha = 0.1f),
-                focusedBorderColor = Color(0xFFFFB300),
-                focusedLabelColor = Color(0xFFFFB300),
-                cursorColor = Color(0xFFFFB300)
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        OutlinedTextField(
-            value = fiber,
-            onValueChange = { fiber = it },
-            label = { Text("Fiber") },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Number,
-                imeAction = ImeAction.Next
-            ),
-            colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Color(0xFF50C878).copy(alpha = 0.2f),
-                unfocusedContainerColor = Color(0xFF50C878).copy(alpha = 0.1f),
-                focusedBorderColor = Color(0xFF50C878),
-                focusedLabelColor = Color(0xFF50C878),
-                cursorColor = Color(0xFF50C878)
-            ),
-            modifier = Modifier.fillMaxWidth(),
-        )
+        NutrientField(calories, { calories = it }, "Calories", MaterialTheme.colorScheme.primary)
+        NutrientField(protein, { protein = it }, "Protein", Color(0xFFEF5350))
+        NutrientField(carbs, { carbs = it }, "Carbs", Color(0xFF42A5F5))
+        NutrientField(fat, { fat = it }, "Fat", Color(0xFFFFB300))
+        NutrientField(fiber, { fiber = it }, "Fiber", Color(0xFF50C878), imeAction = ImeAction.Done)
 
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 16.dp),
+            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            OutlinedButton(
-                onClick = onCancel,
-                modifier = Modifier.weight(1f)
-            ) {
+            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
                 Text("Cancel")
             }
 
             Button(
                 onClick = {
-                    val newIngredient = Ingredient(
+                    onSave(Ingredient(
                         id = ingredient?.id ?: 0,
                         name = name,
                         caloriesPer100 = calories.toDoubleOrNull() ?: 0.0,
@@ -279,11 +204,10 @@ fun AddIngredientScreen(
                         fiberPer100 = fiber.toDoubleOrNull() ?: 0.0,
                         unit = unit,
                         imageUri = selectedImageUri
-                    )
-                    onSave(newIngredient)
+                    ))
                 },
                 modifier = Modifier.weight(1f),
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank() && calories.isNotBlank()
             ) {
                 Text("Save")
             }

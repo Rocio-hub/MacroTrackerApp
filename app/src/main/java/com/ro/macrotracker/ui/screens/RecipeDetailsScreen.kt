@@ -40,86 +40,114 @@ fun RecipeDetailScreen(
     var showAdd by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
 
-    Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(text = recipe.name, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            Text(
+                text = recipe.name,
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onBackground
+            )
 
-        Card(
-            modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
-        ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                Text("Total Nutrition", style = MaterialTheme.typography.titleSmall)
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text("${nutrition.calories.format()} kcal")
-                    Text("P: ${nutrition.protein.format()} g")
-                    Text("C: ${nutrition.carbs.format()} g")
-                    Text("F: ${nutrition.fat.format()} g")
-                    Text("Fi: ${nutrition.fiber.format()} g")
+            Card(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Text(
+                        "Total Nutrition",
+                        style = MaterialTheme.typography.titleSmall,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("${nutrition.calories.format()} kcal")
+                        Text("P: ${nutrition.protein.format()}g")
+                        Text("C: ${nutrition.carbs.format()}g")
+                        Text("F: ${nutrition.fat.format()}g")
+                    }
                 }
             }
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text("Ingredients", style = MaterialTheme.typography.titleMedium)
-            Button(onClick = { showAdd = true }) {
-                Icon(Icons.Default.Add, null)
-                Text("Add")
-            }
-        }
-
-        LazyColumn(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-            items(recipeIngredients) { ri ->
-                val ingredient = ingredients.find { it.id == ri.ingredientId }
-
-                Card(
-                    modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    "Ingredients",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+                Button(
+                    onClick = { showAdd = true },
+                    shape = MaterialTheme.shapes.medium
                 ) {
-                    Row(
-                        modifier = Modifier.padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(ingredient?.name ?: "Unknown", fontWeight = FontWeight.SemiBold)
-                        }
+                    Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Add")
+                }
+            }
 
-                        OutlinedTextField(
-                            value = ri.amount.toString(),
-                            onValueChange = { newValue ->
-                                val updatedGrams = newValue.toDoubleOrNull() ?: 0.0
-                                scope.launch {
-                                    repository.updateRecipeIngredient(ri.copy(amount = updatedGrams))
-                                }
-                            },
-                            modifier = Modifier.width(90.dp),
-                            suffix = {
-                                ingredient?.unit?.let { unit ->
-                                    Text(" $unit")
-                                }
-                            },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true
+            LazyColumn(modifier = Modifier.weight(1f).padding(top = 8.dp)) {
+                items(recipeIngredients) { ri ->
+                    val ingredient = ingredients.find { it.id == ri.ingredientId }
+
+                    Card(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                         )
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                ingredient?.name ?: "Unknown",
+                                modifier = Modifier.weight(1f),
+                                fontWeight = FontWeight.SemiBold
+                            )
 
-                        IconButton(onClick = {
-                            scope.launch { repository.deleteRecipeIngredient(ri.id) }
-                        }) {
-                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            OutlinedTextField(
+                                value = if (ri.amount == 0.0) "" else ri.amount.format(),
+                                onValueChange = { newValue ->
+                                    val updatedGrams = newValue.toDoubleOrNull() ?: 0.0
+                                    scope.launch {
+                                        repository.updateRecipeIngredient(ri.copy(amount = updatedGrams))
+                                    }
+                                },
+                                modifier = Modifier.width(95.dp),
+                                label = { Text(ingredient?.unit ?: "g") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
+                                textStyle = MaterialTheme.typography.bodySmall
+                            )
+
+                            IconButton(onClick = {
+                                scope.launch { repository.deleteRecipeIngredient(ri.id) }
+                            }) {
+                                Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
+                            }
                         }
                     }
                 }
             }
-        }
 
-        Button(
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp)
-        ) {
-            Text("Back to Recipes")
+            Button(
+                onClick = onBack,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp)
+                    .height(56.dp),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text("Save Changes & Exit", fontWeight = FontWeight.Bold)
+            }
         }
     }
 
@@ -129,12 +157,7 @@ fun RecipeDetailScreen(
             onIngredientsSelected = { selectedIngredients ->
                 scope.launch {
                     val newItems = selectedIngredients.map { ing ->
-                        RecipeIngredient(
-                            id = 0,
-                            recipeId = recipe.id,
-                            ingredientId = ing.id,
-                            amount = 100.0
-                        )
+                        RecipeIngredient(id = 0, recipeId = recipe.id, ingredientId = ing.id, amount = 100.0)
                     }
                     repository.insertRecipeIngredients(newItems)
                     showAdd = false

@@ -184,33 +184,29 @@ fun AddIngredientScreen(
         NutrientField(fat, { fat = it }, "Fat", Color(0xFFFFB300))
         NutrientField(fiber, { fiber = it }, "Fiber", Color(0xFF50C878), imeAction = ImeAction.Done)
 
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(top = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) {
-                Text("Cancel")
-            }
+        Spacer(modifier = Modifier.height(24.dp))
 
-            Button(
-                onClick = {
-                    onSave(Ingredient(
-                        id = ingredient?.id ?: 0,
-                        name = name,
-                        caloriesPer100 = calories.toDoubleOrNull() ?: 0.0,
-                        proteinPer100 = protein.toDoubleOrNull() ?: 0.0,
-                        carbsPer100 = carbs.toDoubleOrNull() ?: 0.0,
-                        fatPer100 = fat.toDoubleOrNull() ?: 0.0,
-                        fiberPer100 = fiber.toDoubleOrNull() ?: 0.0,
-                        unit = unit,
-                        imageUri = selectedImageUri
-                    ))
-                },
-                modifier = Modifier.weight(1f),
-                enabled = name.isNotBlank() && calories.isNotBlank()
-            ) {
-                Text("Save")
-            }
+        Button(
+            onClick = {
+                onSave(Ingredient(
+                    id = ingredient?.id ?: 0,
+                    name = name,
+                    caloriesPer100 = calories.toDoubleOrNull() ?: 0.0,
+                    proteinPer100 = protein.toDoubleOrNull() ?: 0.0,
+                    carbsPer100 = carbs.toDoubleOrNull() ?: 0.0,
+                    fatPer100 = fat.toDoubleOrNull() ?: 0.0,
+                    fiberPer100 = fiber.toDoubleOrNull() ?: 0.0,
+                    unit = unit,
+                    imageUri = selectedImageUri
+                ))
+            },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = name.isNotBlank() && calories.isNotBlank(),
+            shape = MaterialTheme.shapes.medium
+        ) {
+            Text("Save Ingredient", modifier = Modifier.padding(8.dp))
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
     }
 }

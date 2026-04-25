@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -64,6 +65,7 @@ class MainActivity : ComponentActivity() {
                 mutableStateOf(prefs.getBoolean("isFirstRun", true))
             }
             var tempTargetCalories by remember { mutableStateOf("") }
+            var tempTargetProtein by remember { mutableStateOf("") }
 
             val currentScreen: Screen by mainViewModel.currentScreen
             val selectedRecipe by mainViewModel.selectedRecipe
@@ -80,11 +82,14 @@ class MainActivity : ComponentActivity() {
             MacroTrackerTheme {
                 if (showWelcomeDialog) {
                     WelcomeGoalDialog(
-                        tempValue = tempTargetCalories,
-                        onValueChange = { tempTargetCalories = it },
+                        tempCals = tempTargetCalories,
+                        onCalsChange = { tempTargetCalories = it },
+                        tempProt = tempTargetProtein,
+                        onProtChange = { tempTargetProtein = it },
                         onConfirm = {
-                            if (tempTargetCalories.isNotEmpty()) {
+                            if (tempTargetCalories.isNotEmpty() && tempTargetProtein.isNotEmpty()) {
                                 mainViewModel.updateGlobalTarget(tempTargetCalories)
+                                mainViewModel.updateProteinTarget(tempTargetProtein) // 👈 Guardamos ambos
 
                                 prefs.edit().putBoolean("isFirstRun", false).apply()
                                 showWelcomeDialog = false
@@ -211,6 +216,8 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainTopAppBar(currentScreen: Screen, selectedRecipeName: String?, onBack: () -> Unit) {
+
+    val isBaseScreen = currentScreen in listOf(Screen.RECIPES, Screen.INGREDIENTS, Screen.PLANNER)
     TopAppBar(
         title = {
             Text(when(currentScreen) {
@@ -224,8 +231,13 @@ fun MainTopAppBar(currentScreen: Screen, selectedRecipeName: String?, onBack: ()
             })
         },
         navigationIcon = {
-            if (currentScreen !in listOf(Screen.RECIPES, Screen.INGREDIENTS, Screen.PLANNER)) {
-                TextButton(onClick = onBack) { Text("Back") }
+            if (!isBaseScreen) {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back"
+                    )
+                }
             }
         }
     )
@@ -390,28 +402,48 @@ fun AdjustMealScreenContent(recipe: com.ro.macrotracker.model.Recipe, mainViewMo
 }
 
 @Composable
-fun WelcomeGoalDialog(tempValue: String, onValueChange: (String) -> Unit, onConfirm: () -> Unit) {
+fun WelcomeGoalDialog(
+    tempCals: String,
+    onCalsChange: (String) -> Unit,
+    tempProt: String,
+    onProtChange: (String) -> Unit,
+    onConfirm: () -> Unit
+) {
     val dialogFocusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = { },
         title = { Text("Welcome to MacroTracker!") },
         text = {
-            Column(modifier = Modifier.fillMaxWidth().pointerInput(Unit) { detectTapGestures(onTap = { dialogFocusManager.clearFocus() }) }) {
-                Text("Let's set your daily calorie goal.")
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text("Let's set your daily goals to get started.")
                 Spacer(modifier = Modifier.height(16.dp))
+
                 OutlinedTextField(
-                    value = tempValue,
-                    onValueChange = onValueChange,
+                    value = tempCals,
+                    onValueChange = onCalsChange,
                     label = { Text("Daily Calories Target") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Next),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                OutlinedTextField(
+                    value = tempProt,
+                    onValueChange = onProtChange,
+                    label = { Text("Daily Protein Target (g)") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { dialogFocusManager.clearFocus() }),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
         },
         confirmButton = {
-            Button(onClick = onConfirm, enabled = tempValue.isNotEmpty()) {
+            Button(
+                onClick = onConfirm,
+                enabled = tempCals.isNotEmpty() && tempProt.isNotEmpty()
+            ) {
                 Text("Get Started")
             }
         }

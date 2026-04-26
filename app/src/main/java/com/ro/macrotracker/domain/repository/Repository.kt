@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 interface Repository {
 
     fun getAllIngredients(): Flow<List<Ingredient>>
-    suspend fun insertIngredient(ingredient: Ingredient)
+    suspend fun insertIngredient(ingredient: Ingredient): Long
     suspend fun updateIngredient(ingredient: Ingredient)
     suspend fun deleteIngredient(ingredient: Ingredient)
 

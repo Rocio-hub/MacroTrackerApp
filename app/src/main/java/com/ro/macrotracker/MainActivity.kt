@@ -153,11 +153,16 @@ class MainActivity : ComponentActivity() {
                             Screen.ADD_RECIPE -> {
                                 AddRecipeScreen(
                                     allIngredients = ingredients,
-                                    onSave = { name, imageUri, selectedIngredientsList ->
-                                        mainViewModel.saveFullRecipe(name, imageUri, selectedIngredientsList)
+                                    mainViewModel = mainViewModel,
+                                    onSave = { name, imageUri, list ->
+                                        mainViewModel.saveFullRecipe(name, imageUri, list)
+                                        mainViewModel.clearTemporaryRecipe()
                                         mainViewModel.navigateTo(Screen.RECIPES)
                                     },
-                                    onCancel = { mainViewModel.navigateTo(Screen.RECIPES) }
+                                    onCancel = {
+                                        mainViewModel.clearTemporaryRecipe()
+                                        mainViewModel.goBack()
+                                    }
                                 )
                             }
                             Screen.ADD_INGREDIENT -> {
@@ -165,9 +170,9 @@ class MainActivity : ComponentActivity() {
                                     ingredient = selectedIngredient,
                                     onSave = { ingredientModel ->
                                         mainViewModel.saveIngredient(ingredientModel)
-                                        mainViewModel.navigateTo(Screen.INGREDIENTS)
+                                        mainViewModel.goBack()
                                     },
-                                    onCancel = { mainViewModel.navigateTo(Screen.INGREDIENTS) }
+                                    onCancel = { mainViewModel.goBack() }
                                 )
                             }
                             Screen.RECIPE_DETAIL -> {

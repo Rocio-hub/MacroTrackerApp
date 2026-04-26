@@ -211,7 +211,8 @@ fun RecipeDetailScreen(
                     showAdd = false
                 }
             },
-            onDismiss = { showAdd = false }
+            onDismiss = { showAdd = false },
+            onNewIngredientClick = { }
         )
     }
 }

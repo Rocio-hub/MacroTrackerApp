@@ -13,6 +13,9 @@ import com.ro.macrotracker.utils.*
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import android.content.SharedPreferences
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.setValue
 
 class MainViewModel (private val repository: Repository, private val prefs: SharedPreferences) : ViewModel() {
 
@@ -37,6 +40,7 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     private val _proteinTarget = MutableStateFlow("")
     val proteinTarget: StateFlow<String> = _proteinTarget.asStateFlow()
 
+    private var returnToScreen: Screen? = null
 
     val ingredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -81,13 +85,9 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     val allIngredientsHistory: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    init {
-        viewModelScope.launch {
-            allRecipesHistory.collect { list ->
-                println("DEBUG: Planner tiene ${list.size} recetas en total (incluyendo borradas)")
-            }
-        }
-    }
+    var temporaryRecipeName by mutableStateOf("")
+    val temporarySelectedIngredients = mutableStateListOf<Pair<Ingredient, Double>>()
+    var temporaryRecipeImage by mutableStateOf<String?>(null)
 
     init {
         loadUserPreferences()
@@ -97,6 +97,12 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     private fun loadUserPreferences() {
         _globalTarget.value = prefs.getString(Constants.KEY_GLOBAL_TARGET, "") ?: ""
         _proteinTarget.value = prefs.getString(Constants.KEY_PROTEIN_TARGET, "") ?: ""
+    }
+
+    fun clearTemporaryRecipe() {
+        temporaryRecipeName = ""
+        temporarySelectedIngredients.clear()
+        temporaryRecipeImage = null
     }
 
     fun updateProteinTarget(newTarget: String) {
@@ -137,8 +143,6 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
         }
     }
 
-    // ... (Mantén el resto de funciones goBack, saveIngredient, etc. igual)
-
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
     }
@@ -147,26 +151,42 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
         _recipeSearchQuery.value = newQuery
     }
 
-    fun navigateTo(screen: Screen, recipe: Recipe? = null, ingredient: Ingredient? = null) {
+    fun navigateTo(screen: Screen, recipe: Recipe? = null, ingredient: Ingredient? = null, returnTo: Screen? = null) {
         _selectedRecipe.value = recipe
         _selectedIngredient.value = ingredient
         _currentScreen.value = screen
+
+        if (returnTo != null) {
+            returnToScreen = returnTo
+        }
     }
 
     fun goBack() {
-        _currentScreen.value = when (_currentScreen.value) {
-            Screen.RECIPE_DETAIL -> Screen.RECIPES
-            Screen.ADD_RECIPE -> Screen.RECIPES
-            Screen.ADD_INGREDIENT -> Screen.INGREDIENTS
-            Screen.ADJUST_MEAL -> Screen.PLANNER
-            else -> _currentScreen.value
+        if (returnToScreen != null) {
+            val destination = returnToScreen!!
+            _currentScreen.value = destination
+        } else {
+            _currentScreen.value = when (_currentScreen.value) {
+                Screen.RECIPE_DETAIL -> Screen.RECIPES
+                Screen.ADD_RECIPE -> Screen.RECIPES
+                Screen.ADD_INGREDIENT -> Screen.INGREDIENTS
+                Screen.ADJUST_MEAL -> Screen.PLANNER
+                else -> Screen.PLANNER
+            }
         }
     }
 
     fun saveIngredient(ingredient: Ingredient) {
         viewModelScope.launch {
-            if (ingredient.id == 0) repository.insertIngredient(ingredient)
-            else repository.updateIngredient(ingredient)
+            val newIdLong = repository.insertIngredient(ingredient)
+            val ingredientWithId = ingredient.copy(id = newIdLong.toInt())
+
+            if (returnToScreen == Screen.ADD_RECIPE) {
+                temporarySelectedIngredients.add(ingredientWithId to 100.0)
+                println("DEBUG_VM: ¡Añadido con éxito!")
+
+                returnToScreen = null
+            }
         }
     }
 

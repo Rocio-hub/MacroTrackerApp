@@ -29,8 +29,8 @@ class RepositoryImplementation(
         }
     }
 
-    override suspend fun insertIngredient(ingredient: Ingredient) {
-        ingredientDao.insertIngredient(ingredient.toIngredientEntity())
+    override suspend fun insertIngredient(ingredient: Ingredient): Long {
+        return ingredientDao.insertIngredient(ingredient.toIngredientEntity())
     }
 
     override suspend fun updateIngredient(ingredient: Ingredient) {

@@ -7,7 +7,8 @@ fun RecipeEntity.toDomain(): Recipe {
     return Recipe(
         id = id,
         name = name,
-        imageUri = imageUri
+        imageUri = imageUri,
+        isDeleted = isDeleted
     )
 }
 
@@ -15,6 +16,7 @@ fun Recipe.toRecipeEntity(): RecipeEntity {
     return RecipeEntity(
         id = id,
         name = name,
-        imageUri = imageUri
+        imageUri = imageUri,
+        isDeleted = isDeleted
     )
 }

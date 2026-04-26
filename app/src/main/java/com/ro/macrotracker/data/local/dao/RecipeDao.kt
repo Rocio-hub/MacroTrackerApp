@@ -12,7 +12,7 @@ interface RecipeDao {
     @Insert
     suspend fun insertRecipe(recipe: Recipe): Long
 
-    @Query("SELECT * FROM recipes WHERE isDeleted = 0")
+    @Query("SELECT * FROM recipes")
     fun getAllRecipes(): Flow<List<Recipe>>
 
     @Query("UPDATE recipes SET isDeleted = 1 WHERE id = :recipeId")

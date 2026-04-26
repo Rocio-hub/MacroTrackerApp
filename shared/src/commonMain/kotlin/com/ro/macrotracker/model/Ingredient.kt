@@ -9,5 +9,6 @@ data class Ingredient(
     val fatPer100: Double,
     val fiberPer100: Double,
     val unit: String,
-    val imageUri: String?
+    val imageUri: String?,
+    val isDeleted: Boolean = false
 )

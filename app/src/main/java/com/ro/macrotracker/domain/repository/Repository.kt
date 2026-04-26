@@ -30,4 +30,7 @@ interface Repository {
     suspend fun deleteMealFromPlanner(sessionId: Long)
 
     fun getLogsForDate(start: Long, end: Long): Flow<List<DailyIngredientLog>>
+
+    suspend fun softDeleteRecipe(id: Int)
+    suspend fun softDeleteIngredient(id: Int)
 }

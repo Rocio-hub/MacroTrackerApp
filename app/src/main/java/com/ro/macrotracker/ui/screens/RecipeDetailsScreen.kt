@@ -39,19 +39,65 @@ fun RecipeDetailScreen(
 
     var showAdd by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
         color = MaterialTheme.colorScheme.background
     ) {
         Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-            Text(
-                text = recipe.name,
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onBackground
-            )
 
+            // CABECERA: Nombre + Borrar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = recipe.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.weight(1f),
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+
+                IconButton(onClick = { showDeleteConfirm = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "Delete Recipe",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
+
+            // DIÁLOGO DE BORRADO
+            if (showDeleteConfirm) {
+                AlertDialog(
+                    onDismissRequest = { showDeleteConfirm = false },
+                    title = { Text("Delete Recipe?") },
+                    text = { Text("The recipe will be removed from your list, but your past logs in the planner will be kept.") },
+                    confirmButton = {
+                        TextButton(
+                            onClick = {
+                                scope.launch {
+                                    // 👈 USAMOS EL ID AQUÍ para que coincida con tu @Query
+                                    repository.softDeleteRecipe(recipe.id)
+                                    onBack()
+                                }
+                            }
+                        ) {
+                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showDeleteConfirm = false }) {
+                            Text("Cancel")
+                        }
+                    }
+                )
+            }
+
+            // CARD DE NUTRICIÓN TOTAL
             Card(
                 modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
                 colors = CardDefaults.cardColors(
@@ -73,6 +119,7 @@ fun RecipeDetailScreen(
                 }
             }
 
+            // SECCIÓN INGREDIENTES
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -138,6 +185,7 @@ fun RecipeDetailScreen(
                 }
             }
 
+            // BOTÓN DE SALIDA (SAVE CHANGES)
             Button(
                 onClick = onBack,
                 modifier = Modifier

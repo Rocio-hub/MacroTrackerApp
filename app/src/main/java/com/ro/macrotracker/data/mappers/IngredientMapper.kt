@@ -13,7 +13,8 @@ fun IngredientEntity.toDomain(): Ingredient {
         fiberPer100 = fiberPer100,
         proteinPer100 = proteinPer100,
         unit = unit,
-        imageUri = imageUri
+        imageUri = imageUri,
+        isDeleted = isDeleted
     )
 }
 
@@ -27,6 +28,7 @@ fun Ingredient.toIngredientEntity(): IngredientEntity {
         fiberPer100 = fiberPer100,
         proteinPer100 = proteinPer100,
         unit = unit,
-        imageUri = imageUri
+        imageUri = imageUri,
+        isDeleted = isDeleted
     )
 }

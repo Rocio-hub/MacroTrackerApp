@@ -37,16 +37,26 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     private val _proteinTarget = MutableStateFlow("")
     val proteinTarget: StateFlow<String> = _proteinTarget.asStateFlow()
 
+
     val ingredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val recipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .map { list -> list.filter { !it.isDeleted } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val filteredIngredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
         .combine(_ingredientSearchQuery) { list, query ->
             if (query.isBlank()) list
             else list.filter { it.name.contains(query, ignoreCase = true) }
+        }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val filteredRecipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .combine(_recipeSearchQuery) { list, query ->
+            val activeRecipes = list.filter { !it.isDeleted }
+            if (query.isBlank()) activeRecipes
+            else activeRecipes.filter { it.name.contains(query, ignoreCase = true) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
@@ -57,15 +67,36 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
         repository.getLogsForDate(getStartOfDay(date), getEndOfDay(date))
     }.stateIn(viewModelScope, SharingStarted.Lazily, emptyList())
 
+    val activeRecipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .map { list -> list.filter { !it.isDeleted } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allRecipesHistory: StateFlow<List<Recipe>> = repository.getAllRecipes()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val activeIngredients: StateFlow<List<Ingredient>> = repository.getAllIngredients()
+        .map { list -> list.filter { !it.isDeleted } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val allIngredientsHistory: StateFlow<List<Ingredient>> = repository.getAllIngredients()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        viewModelScope.launch {
+            allRecipesHistory.collect { list ->
+                println("DEBUG: Planner tiene ${list.size} recetas en total (incluyendo borradas)")
+            }
+        }
+    }
+
     init {
         loadUserPreferences()
     }
 
+
     private fun loadUserPreferences() {
-        val savedCals = prefs.getString(Constants.KEY_GLOBAL_TARGET, "") ?: ""
-        val savedProtein = prefs.getString(Constants.KEY_PROTEIN_TARGET, "") ?: "" // 👈 Leer proteína
-        _globalTarget.value = savedCals
-        _proteinTarget.value = savedProtein
+        _globalTarget.value = prefs.getString(Constants.KEY_GLOBAL_TARGET, "") ?: ""
+        _proteinTarget.value = prefs.getString(Constants.KEY_PROTEIN_TARGET, "") ?: ""
     }
 
     fun updateProteinTarget(newTarget: String) {
@@ -77,6 +108,36 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
         _globalTarget.value = newTarget
         prefs.edit().putString(Constants.KEY_GLOBAL_TARGET, newTarget).apply()
     }
+
+    fun softDeleteRecipe(recipe: Recipe) {
+        viewModelScope.launch {
+            repository.softDeleteRecipe(recipe.id)
+        }
+    }
+    fun softDeleteIngredient(ingredient: Ingredient) {
+        viewModelScope.launch {
+            repository.softDeleteIngredient(ingredient.id)
+        }
+    }
+
+    fun saveFullRecipe(name: String, imageUri: String?, items: List<Pair<Ingredient, Double>>) {
+        viewModelScope.launch {
+            val recipe = Recipe(name = name, imageUri = imageUri)
+            val recipeId = repository.insertRecipe(recipe).toInt()
+
+            val modelsToSave = items.map { (modelIng, amount) ->
+                RecipeIngredient(
+                    id = 0,
+                    recipeId = recipeId,
+                    ingredientId = modelIng.id,
+                    amount = amount
+                )
+            }
+            repository.insertRecipeIngredients(modelsToSave)
+        }
+    }
+
+    // ... (Mantén el resto de funciones goBack, saveIngredient, etc. igual)
 
     fun onIngredientSearchQueryChange(newQuery: String) {
         _ingredientSearchQuery.value = newQuery
@@ -111,25 +172,7 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
 
     fun deleteIngredient(ingredient: Ingredient) {
         viewModelScope.launch {
-            repository.deleteIngredient(ingredient)
-        }
-    }
-
-    fun saveFullRecipe(name: String, imageUri: String?, items: List<Pair<Ingredient, Double>>) {
-        viewModelScope.launch {
-            val recipe = Recipe(name = name, imageUri = imageUri)
-            val recipeId = repository.insertRecipe(recipe).toInt()
-
-            val modelsToSave = items.map { (modelIng, amount) ->
-                RecipeIngredient(
-                    id = 0,
-                    recipeId = recipeId,
-                    ingredientId = modelIng.id,
-                    amount = amount
-                )
-            }
-
-            repository.insertRecipeIngredients(modelsToSave)
+            repository.softDeleteIngredient(ingredient.id)
         }
     }
 
@@ -137,17 +180,9 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
         repository.getAllRecipeIngredients()
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    val filteredRecipes: StateFlow<List<Recipe>> = repository.getAllRecipes()
-        .combine(_recipeSearchQuery) { list, query ->
-            if (query.isBlank()) list
-            else list.filter { it.name.contains(query, ignoreCase = true) }
-        }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
-
     suspend fun getUsageCount(ingredientId: Int): Int {
         return repository.getUsageCountForIngredient(ingredientId)
     }
-
 
     fun saveMealToPlanner(recipeId: Int, items: List<Pair<Ingredient, Double>>, date: Long) {
         viewModelScope.launch {
@@ -175,5 +210,4 @@ class MainViewModel (private val repository: Repository, private val prefs: Shar
     fun onDateChange(newTimestamp: Long) {
         _selectedDate.value = newTimestamp
     }
-
 }

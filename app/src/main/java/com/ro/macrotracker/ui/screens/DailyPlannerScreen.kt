@@ -45,6 +45,7 @@ import com.ro.macrotracker.ui.components.RecipeItem
 @Composable
 fun DailyPlannerScreen(
     recipes: List<Recipe>,
+    activeRecipes: List<Recipe>,
     ingredients: List<Ingredient>,
     recipeIngredientsMap: Map<Int, List<RecipeIngredient>>,
     dailyLogs: List<com.ro.macrotracker.model.DailyIngredientLog>,
@@ -76,9 +77,9 @@ fun DailyPlannerScreen(
     val target = targetCalories.toDoubleOrNull() ?: 0.0
     val searchQuery by viewModel.plannerSearchQuery.collectAsState()
 
-    val filteredRecipes = remember(searchQuery, recipes) {
-        if (searchQuery.isBlank()) recipes
-        else recipes.filter { it.name.contains(searchQuery, ignoreCase = true) }
+    val filteredRecipes = remember(searchQuery, activeRecipes) {
+        if (searchQuery.isBlank()) activeRecipes
+        else activeRecipes.filter { it.name.contains(searchQuery, ignoreCase = true) }
     }
 
     val keyboardController = LocalSoftwareKeyboardController.current
@@ -323,7 +324,9 @@ fun DailyPlannerScreen(
                 items(eatenMeals.keys.toList().sortedDescending()) { sessionId ->
                     val logsInThisMeal = eatenMeals[sessionId] ?: emptyList()
                     val firstLog = logsInThisMeal.firstOrNull()
+
                     val recipe = recipes.find { it.id == firstLog?.recipeId }
+                    val recipeName = recipe?.name ?: "Unknown"
 
                     val mealNutrition = logsInThisMeal.fold(com.ro.macrotracker.domain.Nutrition()) { acc, log ->
                         val ing = ingredients.find { it.id == log.ingredientId }
@@ -347,17 +350,17 @@ fun DailyPlannerScreen(
                     ) {
                         ListItem(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                            headlineContent = { Text(recipe?.name ?: "Unknown", fontWeight = FontWeight.Bold) },
+                            headlineContent = { Text(recipeName, fontWeight = FontWeight.Bold) },
                             supportingContent = {
                                 Text("${mealNutrition.calories.format()} kcal", style = MaterialTheme.typography.bodyMedium)
                             },
                             trailingContent = {
                                 IconButton(onClick = {
-                                    recipeToDelete = recipe
+                                    recipeToDelete = recipe ?: Recipe(name = recipeName)
                                     sessionIdToDelete = sessionId
                                     showDeleteDialog = true
                                 }) {
-                                    Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                                    Icon(Icons.Default.Delete, null, tint = MaterialTheme.colorScheme.error)
                                 }
                             }
                         )

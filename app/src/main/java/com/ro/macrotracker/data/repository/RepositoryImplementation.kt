@@ -7,14 +7,14 @@ import com.ro.macrotracker.data.local.dao.RecipeIngredientDao
 import com.ro.macrotracker.data.mappers.toDomain
 import com.ro.macrotracker.data.mappers.toIngredientEntity
 import com.ro.macrotracker.data.mappers.toRecipeEntity
+import com.ro.macrotracker.data.mappers.toEntity
 import com.ro.macrotracker.domain.repository.Repository
 import com.ro.macrotracker.model.Ingredient
 import com.ro.macrotracker.model.Recipe
 import com.ro.macrotracker.model.RecipeIngredient
+import com.ro.macrotracker.model.DailyIngredientLog
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
-import com.ro.macrotracker.data.mappers.toEntity
-import com.ro.macrotracker.model.DailyIngredientLog
 
 class RepositoryImplementation(
     private val ingredientDao: IngredientDao,
@@ -38,7 +38,11 @@ class RepositoryImplementation(
     }
 
     override suspend fun deleteIngredient(ingredient: Ingredient) {
-        ingredientDao.deleteIngredient(ingredient.toIngredientEntity())
+        ingredientDao.softDeleteIngredient(ingredient.id)
+    }
+
+    override suspend fun softDeleteIngredient(id: Int) {
+        ingredientDao.softDeleteIngredient(id)
     }
 
     override fun getAllRecipes(): Flow<List<Recipe>> {
@@ -49,6 +53,10 @@ class RepositoryImplementation(
 
     override suspend fun insertRecipe(recipe: Recipe): Long {
         return recipeDao.insertRecipe(recipe.toRecipeEntity())
+    }
+
+    override suspend fun softDeleteRecipe(id: Int) {
+        recipeDao.softDeleteRecipe(id)
     }
 
     override fun getIngredientsForRecipe(recipeId: Int): Flow<List<RecipeIngredient>> {

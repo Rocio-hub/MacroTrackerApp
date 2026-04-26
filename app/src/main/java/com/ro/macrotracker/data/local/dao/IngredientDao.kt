@@ -20,6 +20,6 @@ interface IngredientDao {
     @Update
     suspend fun updateIngredient(ingredient: Ingredient)
 
-    @Delete
-    suspend fun deleteIngredient(ingredient: Ingredient)
+    @Query("UPDATE ingredients SET isDeleted = 1 WHERE id = :ingredientId")
+    suspend fun softDeleteIngredient(ingredientId: Int)
 }

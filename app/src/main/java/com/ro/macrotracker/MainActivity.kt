@@ -5,7 +5,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -56,7 +55,6 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val prefs = remember { context.getSharedPreferences("planner", 0) }
-
             val mainViewModel: MainViewModel = viewModel(
                 factory = MainViewModelFactory(repository, prefs)
             )
@@ -72,7 +70,12 @@ class MainActivity : ComponentActivity() {
             val selectedIngredient by mainViewModel.selectedIngredient
 
             val ingredients by mainViewModel.ingredients.collectAsState()
-            val recipes by mainViewModel.recipes.collectAsState()
+            val activeRecipes by mainViewModel.recipes.collectAsState()
+            val allRecipesHistory by mainViewModel.allRecipesHistory.collectAsState()
+            val activeIngredients by mainViewModel.activeIngredients.collectAsState()
+            val allIngredientsHistory by mainViewModel.allIngredientsHistory.collectAsState()
+
+
             val allRI by mainViewModel.allRecipeIngredients.collectAsState()
             val selectedDate by mainViewModel.selectedDate.collectAsState()
 
@@ -126,14 +129,15 @@ class MainActivity : ComponentActivity() {
                             Screen.RECIPES -> {
                                 RecipesListContent(
                                     mainViewModel = mainViewModel,
-                                    recipes = recipes,
+                                    recipes = activeRecipes,
                                     allRI = allRI,
-                                    ingredients = ingredients
+                                    ingredients = activeIngredients
                                 )
                             }
                             Screen.INGREDIENTS -> {
                                 IngredientsListContent(
                                     mainViewModel = mainViewModel,
+                                    ingredients = activeIngredients,
                                     onDeleteRequest = { ingredient ->
                                         scope.launch {
                                             val count = mainViewModel.getUsageCount(ingredient.id)
@@ -176,10 +180,12 @@ class MainActivity : ComponentActivity() {
                             Screen.PLANNER -> {
                                 val dailyLogs by mainViewModel.dailyLogs.collectAsState()
                                 val recipeIngredientsMap = remember(allRI) { allRI.groupBy { it.recipeId } }
+                                val activeRecipes by mainViewModel.activeRecipes.collectAsState()
 
                                 DailyPlannerScreen(
-                                    recipes = recipes,
-                                    ingredients = ingredients,
+                                    recipes = allRecipesHistory,
+                                    activeRecipes = activeRecipes,
+                                    ingredients = allIngredientsHistory,
                                     recipeIngredientsMap = recipeIngredientsMap,
                                     dailyLogs = dailyLogs,
                                     onRecipeClick = { recipe ->
@@ -326,7 +332,6 @@ fun RecipesListContent(
 
         LazyColumn(modifier = Modifier.weight(1f)) {
             items(filteredRecipes) { recipe ->
-                // Cálculo de nutrición delegado al dominio
                 val recipeIngredients = allRI.filter { it.recipeId == recipe.id }
                 val nutrition = com.ro.macrotracker.domain.calculateRecipeNutrition(
                     recipeIngredients,
@@ -346,6 +351,7 @@ fun RecipesListContent(
 @Composable
 fun IngredientsListContent(
     mainViewModel: MainViewModel,
+    ingredients: List<com.ro.macrotracker.model.Ingredient>,
     onDeleteRequest: (com.ro.macrotracker.model.Ingredient) -> Unit
 ) {
     val searchQuery by mainViewModel.ingredientSearchQuery.collectAsState()
